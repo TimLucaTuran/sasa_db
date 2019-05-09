@@ -1,7 +1,7 @@
 /*
 USE meta_materials;
 CREATE TABLE simulations(
-    simulation_id INT UNSIGNED PRIMARY KEY,
+    simulation_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     m_file VARCHAR(70),
     particle_material VARCHAR(30),
     cladding VARCHAR(30),
