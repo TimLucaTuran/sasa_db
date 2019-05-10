@@ -106,11 +106,15 @@ class Exl:
             elif self.data.count(',') > 1:
                 self.data = self.data.split(',')
 
+            elif ', ' in self.data:
+                self.data = self.data.split(', ')
+
         return
 
-    def material_split(self):
-        if ',' in self.data:
-            self.data = self.data.split(',')
+    def comma_split(self):
+        if type(self.data) is str:
+            if ',' in self.data:
+                self.data = self.data.split(',')
         return
 
     def geo_setup(self):
@@ -202,7 +206,6 @@ class QueryGenerator:
 
         #Try to execute the queries
         try:
-            print('adress: ', sql_dict['adress'])
             my_cursor.execute(self.sim_query, tuple(sim_data))
         except Exception as e:
             print('Bad simulation query')
@@ -226,34 +229,12 @@ class QueryGenerator:
 
         return
 
-    def loop_sql_dict(self, sql_dict, list_vals):
-        if len(list_vals) == 0:
-            self.make_query(sql_dict)
-            return
-
-        else:
-            print('list_vals: ',list_vals)
-            tup = list_vals.pop()
-            current_key = tup[0]
-            current_list = tup[1]
-            self.adress.append(None)
-
-            for i in range(len(current_list)):
-                sql_dict[current_key] = current_list[i]
-                self.adress[-1] = i
-                sql_dict['adress'] = str(self.adress)
-                self.loop_sql_dict(sql_dict, list_vals)
-
-            #reset the adress
-
-            sql_dict['adress'] = None
-
-
-
     def generate(self, sql_dict):
         """
         This method gets a possibly nested sql_dict.
         It splits them up and calls make_query for every simple list.
+        I thought about a recursiv way to write this function but I can't get
+        it to work.
         """
         #find the colums which have list-values
         list_vals = [(key, val) for key, val in sql_dict.items()
@@ -261,17 +242,88 @@ class QueryGenerator:
         list_vals.sort(key = lambda tup : len(tup[1]), reverse = True)
         #reset the adress
         self.adress = []
-        self.loop_sql_dict(sql_dict, list_vals)
-        return
+
+
+        if len(list_vals) == 0:
+            self.make_query(sql_dict)
+            return
+
+        elif len(list_vals) == 1:
+            current_key = list_vals[0][0]
+            current_list = list_vals[0][1]
+            self.adress.append(None)
+
+            for i in range(len(current_list)):
+                sql_dict[current_key] = current_list[i]
+                self.adress[-1] = i
+                sql_dict['adress'] = str(self.adress)
+                self.make_query(sql_dict)
+
+
+            #reset the adress
+            sql_dict['adress'] = None
+            return
+
+        elif len(list_vals) == 2:
+            key_0 = list_vals[0][0]
+            list_0 = list_vals[0][1]
+            key_1 = list_vals[1][0]
+            list_1 = list_vals[1][1]
+            self.adress.append(None)
+            self.adress.append(None)
+
+            for i in range(len(list_0)):
+                sql_dict[key_0] = list_0[i]
+                self.adress[0] = i
+                for j in range(len(list_1)):
+                    sql_dict[key_1] = list_1[j]
+                    self.adress[1] = j
+                    sql_dict['adress'] = str(self.adress)
+                    self.make_query(sql_dict)
+
+            #reset the adress
+            sql_dict['adress'] = None
+            return
+
+        elif len(list_vals) == 3:
+            key_0 = list_vals[0][0]
+            list_0 = list_vals[0][1]
+            key_1 = list_vals[1][0]
+            list_1 = list_vals[1][1]
+            key_2  = list_vals[2][0]
+            list_2 = list_vals[2][1]
+            self.adress.append(None)
+            self.adress.append(None)
+            self.adress.append(None)
+
+            for i in range(len(list_0)):
+                sql_dict[key_0] = list_0[i]
+                self.adress[0] = i
+                for j in range(len(list_1)):
+                    sql_dict[key_1] = list_1[j]
+                    self.adress[1] = j
+                    for k in range(len(list_2)):
+                        sql_dict[key_2] = list_1[k]
+                        self.adress[2] = k
+                        sql_dict['adress'] = str(self.adress)
+                        self.make_query(sql_dict)
+
+            #reset the adress
+            sql_dict['adress'] = None
+            return
+
+        else:
+            print('list_val dim to high')
+            print('list_vals: ',list_vals)
 
 
 
 #Define the excel_list with one Exl for every column
 #Setup ist Exl(excel_name, sql_name, [opperations])
 exl_list = [Exl('m-file', 'm_file'),
-            Exl('material', 'particle_material', [Exl.material_split]),
-            Exl('cladding', 'cladding'),
-            Exl('substrate', 'substrate'),
+            Exl('material', 'particle_material', [Exl.comma_split]),
+            Exl('cladding', 'cladding', [Exl.comma_split]),
+            Exl('substrate', 'substrate',  [Exl.comma_split]),
             Exl('geom', 'geometry', [Exl.geo_setup]),
             Exl('periode', 'periode' ),
             Exl('wavelength', 'wavelength_start', [Exl.wav_split]),
@@ -299,7 +351,7 @@ for cell in name_row:
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator()
-for row in ws.iter_rows(name_row[0].row + 1, 14): #ws.max_row):
+for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
     #Break on empty row
     if len(row[0].value) == 0:
         break
