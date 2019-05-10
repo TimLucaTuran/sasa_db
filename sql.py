@@ -108,6 +108,11 @@ class Exl:
 
         return
 
+    def material_split(self):
+        if ',' in self.data:
+            self.data = self.data.split(',')
+        return
+
     def geo_setup(self):
 
         #check for additional geometry features
@@ -197,6 +202,7 @@ class QueryGenerator:
 
         #Try to execute the queries
         try:
+            print('adress: ', sql_dict['adress'])
             my_cursor.execute(self.sim_query, tuple(sim_data))
         except Exception as e:
             print('Bad simulation query')
@@ -222,11 +228,11 @@ class QueryGenerator:
 
     def loop_sql_dict(self, sql_dict, list_vals):
         if len(list_vals) == 0:
-            print('adress: ', self.adress)
             self.make_query(sql_dict)
             return
+
         else:
-            print('loop called')
+            print('list_vals: ',list_vals)
             tup = list_vals.pop()
             current_key = tup[0]
             current_list = tup[1]
@@ -241,7 +247,6 @@ class QueryGenerator:
             #reset the adress
 
             sql_dict['adress'] = None
-            return
 
 
 
@@ -254,7 +259,6 @@ class QueryGenerator:
         list_vals = [(key, val) for key, val in sql_dict.items()
                     if type(val) is list]
         list_vals.sort(key = lambda tup : len(tup[1]), reverse = True)
-        print('list_cols: ', list_vals)
         #reset the adress
         self.adress = []
         self.loop_sql_dict(sql_dict, list_vals)
@@ -265,7 +269,7 @@ class QueryGenerator:
 #Define the excel_list with one Exl for every column
 #Setup ist Exl(excel_name, sql_name, [opperations])
 exl_list = [Exl('m-file', 'm_file'),
-            Exl('material', 'particle_material'),
+            Exl('material', 'particle_material', [Exl.material_split]),
             Exl('cladding', 'cladding'),
             Exl('substrate', 'substrate'),
             Exl('geom', 'geometry', [Exl.geo_setup]),
@@ -295,7 +299,7 @@ for cell in name_row:
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator()
-for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
+for row in ws.iter_rows(name_row[0].row + 1, 14): #ws.max_row):
     #Break on empty row
     if len(row[0].value) == 0:
         break
@@ -312,5 +316,6 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
         exl.write()
 
     query_gen.generate(sql_dict)
+    print('')
 
 mydb.commit()
