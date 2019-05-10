@@ -191,12 +191,6 @@ class QueryGenerator:
         self.geo_query += len(geo_data)*"%s, "
         self.geo_query = self.geo_query[:-2]
         self.geo_query += ')'
-        print(self.sim_query)
-        print(sim_data)
-        print(len(sim_data),'=', key_count)
-        print(self.geo_query)
-        print(geo_data)
-        print('\n')
 
         #Try to execute the queries
         try:
@@ -204,6 +198,9 @@ class QueryGenerator:
         except Exception as e:
             print('Bad simulation query')
             print(e)
+            print(self.sim_query)
+            print(sim_data)
+            print('\n')
 
         self.update_id()
         try:
@@ -211,6 +208,9 @@ class QueryGenerator:
         except Exception as e:
             print('Bad geometry query')
             print(e)
+            print(self.geo_query)
+            print(geo_data)
+            print('\n')
 
         self.sim_query = 'INSERT INTO simulations ('
         self.geo_query = 'INSERT INTO '
@@ -273,7 +273,7 @@ exl_list = [Exl('m-file', 'm_file'),
             Exl('length', 'length', [Exl.evaluate, Exl.listify]),
             Exl('width', 'width', [Exl.evaluate, Exl.listify]),
             Exl('thickness', 'thickness', [Exl.evaluate, Exl.listify]),
-            Exl('corner radius', 'corner_radius'),
+            Exl('corner radius', 'corner_radius', [Exl.listify]),
             ]
 
 
@@ -292,7 +292,7 @@ for cell in name_row:
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator()
-for row in ws.iter_rows(name_row[0].row + 1, ws.max_row):
+for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
     #Break on empty row
     if len(row[0].value) == 0:
         break
@@ -302,7 +302,7 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row):
         for exl in exl_list:
             if i == exl.column:
                 exl.data = row[i].value
-
+    #Construct the sql_dict out of the exl_list
     for exl in exl_list:
         for opperation in exl.opperation_list:
             opperation(exl)
