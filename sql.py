@@ -51,6 +51,7 @@ class Exl:
         self.column = None
         self.data = None
         self.target_dict = sql_dict
+        self.geometries_list = ['wire', 'square']
 
     def write(self):
         self.target_dict[self.target_key] = self.data
@@ -115,6 +116,14 @@ class Exl:
 
         if 'hole' in self.data:
             self.target_dict['hole'] = 1
+
+        #check for valid sql-geometry
+        for geo in self.geometries_list:
+            if geo in self.data:
+                self.data = geo
+                break
+        else:
+            print('Found no valid geometry in : ',self.data)
         return
 
 
@@ -166,15 +175,9 @@ class QueryGenerator:
         self.sim_query += ')'
 
         #geometry query
-        for geo in self.geometries:
-            if geo in sql_dict['geometry']:
-                sql_dict['geometry'] = geo
-                self.geo_query += geo
-                self.geo_query += ' ('
-                current_geo = self.geometries[geo]
-                break
-        else:
-            raise RuntimeError('Found no valid geometry in {}'.format(sql_dict['geometry']))
+        current_geo = self.geometries[sql_dict['geometry']]
+        self.geo_query += sql_dict['geometry']
+        self.geo_query += ' ('
 
         #select the activ part of the dict for current geometry
         active_dict = [(key, val) for key, val in sql_dict.items() if key in current_geo]
