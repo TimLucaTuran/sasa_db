@@ -143,6 +143,8 @@ class QueryGenerator:
         self.target_dict = target_dict
         self.sim_query = 'INSERT INTO simulations ('
         self.geo_query = 'INSERT INTO '
+        self.valid_queries = 0
+        self.failed_queries = 0
         self.wire = ['simulation_id', 'length', 'width', 'thickness','corner_radius',
                     'rounded_corner']
         self.square = ['simulation_id', 'length', 'width', 'thickness', 'hole']
@@ -207,7 +209,9 @@ class QueryGenerator:
         #Try to execute the queries
         try:
             my_cursor.execute(self.sim_query, tuple(sim_data))
+            self.valid_queries += 1
         except Exception as e:
+            self.failed_queries += 1
             print('Bad simulation query')
             print(e)
             print(self.sim_query)
@@ -240,6 +244,16 @@ class QueryGenerator:
         list_vals = [(key, val) for key, val in sql_dict.items()
                     if type(val) is list]
         list_vals.sort(key = lambda tup : len(tup[1]), reverse = True)
+
+        #check if there are multiple values with the same dimension.
+        #In this case the adress system won't work because it can't know which
+        #dimension belongs to which property
+        len_list = [len(tup[1]) for tup in list_vals]
+        if len(len_list) != len(set(len_list)):
+            self.failed_queries += 1
+            print('multiple Values have the same dimension, skipping')
+            return
+
         #reset the adress
         self.adress = []
 
@@ -313,6 +327,7 @@ class QueryGenerator:
             return
 
         else:
+            self.failed_queries += 1
             print('list_val dim to high')
             print('list_vals: ',list_vals)
 
@@ -370,4 +385,7 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
     query_gen.generate(sql_dict)
     print('')
 
+
 mydb.commit()
+print("{}/{} queries successful".format(
+     query_gen.valid_queries, query_gen.valid_queries + query_gen.failed_queries))
