@@ -136,6 +136,9 @@ class Exl:
         if 'hole' in self.data:
             self.target_dict['hole'] = 1
 
+        if 'sem' in self.data:
+            raise RuntimeError('Have not implemented SEM wires jet')
+            return
         #check for valid sql-geometry
         for geo in self.geometries_list:
             if geo in self.data:
@@ -170,7 +173,7 @@ class QueryGenerator:
         #get the current simulation_id
         my_cursor.execute("SELECT MAX(simulation_id) FROM simulations;")
         id = my_cursor.fetchone()[0]
-        if not type(id) is int:
+        if id is None:
             id = 1
         else:
             id += 1
@@ -206,6 +209,7 @@ class QueryGenerator:
         self.sim_query += ')'
 
         #geometry query
+        self.update_id()
         current_geo = self.geometries[sql_dict['geometry']]
         self.geo_query += sql_dict['geometry']
         self.geo_query += ' ('
@@ -229,24 +233,18 @@ class QueryGenerator:
         #Try to execute the queries
         try:
             my_cursor.execute(self.sim_query, tuple(sim_data))
+            my_cursor.execute(self.geo_query, tuple(geo_data))
             self.valid_queries += 1
         except Exception as e:
             self.failed_queries += 1
-            print('Bad simulation query')
+            print('Bad query')
             print(e)
             print(self.sim_query)
             print(sim_data)
-            print('\n')
-
-        self.update_id()
-        try:
-            my_cursor.execute(self.geo_query, tuple(geo_data))
-        except Exception as e:
-            print('Bad geometry query')
-            print(e)
             print(self.geo_query)
             print(geo_data)
             print('\n')
+
 
         self.reset()
 
