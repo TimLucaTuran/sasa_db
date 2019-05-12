@@ -19,6 +19,14 @@ CREATE TABLE square(
     hole BOOL DEFAULT FALSE
 );
 
+CREATE TABLE square(
+    simulation_id INT UNSIGNED PRIMARY KEY,
+    width INT UNSIGNED,
+    thickness INT UNSIGNED,
+    hole BOOL DEFAULT FALSE
+);
+
+
 CREATE TABLE wire(
     simulation_id INT UNSIGNED PRIMARY KEY,
     length INT UNSIGNED,

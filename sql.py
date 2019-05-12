@@ -11,11 +11,13 @@ mydb = mc.connect(
 my_cursor = mydb.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
-ws = wb[sheets[-8]]
+ws = wb[sheets[int(sys.argv[1]) - 1]] #usable sheets are: 10,
+
 my_cursor.execute("TRUNCATE TABLE simulations;")
 my_cursor.execute("TRUNCATE TABLE wire;")
 my_cursor.execute("TRUNCATE TABLE square;")
-
+my_cursor.execute("TRUNCATE TABLE circ;")
+my_cursor.execute("TRUNCATE TABLE disc;")
 
 
 sql_dict={ 'geometry': None ,
@@ -51,7 +53,7 @@ class Exl:
         self.column = None
         self.data = None
         self.target_dict = sql_dict
-        self.geometries_list = ['wire', 'square']
+        self.geometries_list = ['wire', 'square', 'circ']
 
     def write(self):
         self.target_dict[self.target_key] = self.data
@@ -59,12 +61,19 @@ class Exl:
 
 
     def wav_split(self):
-        try:
-            start = float(self.data[:4].strip())
-            stop = float(self.data[-4:].strip())
-        except:
-            raise RuntimeError(
-                  "Failed to wav_split: {}".format(self.data))
+        if '…' in self.data:
+            both = self.data.split('…')
+        elif '-' in self.data:
+            both = self.data.split('-')
+        elif '–' in self.data:
+            both = self.data.split('–')
+
+        else:
+            print("couldn't wav-split")
+            return
+        start = both[0]
+        stop = both[1]
+
         #copy stop to the SQL list, start will be taken care of by write()
         self.target_dict['wavelength_stop'] = stop
         self.data = start
@@ -118,6 +127,7 @@ class Exl:
         return
 
     def geo_setup(self):
+        self.data = self.data.lower()
 
         #check for additional geometry features
         if 'rounded' in self.data:
@@ -132,7 +142,7 @@ class Exl:
                 self.data = geo
                 break
         else:
-            print('Found no valid geometry in : ',self.data)
+            raise RuntimeError('Found no valid geometry in : {}'.format(self.data))
         return
 
 
@@ -145,11 +155,14 @@ class QueryGenerator:
         self.geo_query = 'INSERT INTO '
         self.valid_queries = 0
         self.failed_queries = 0
+        self.skip_row = False
         self.wire = ['simulation_id', 'length', 'width', 'thickness','corner_radius',
                     'rounded_corner']
         self.square = ['simulation_id', 'length', 'width', 'thickness', 'hole']
+        self.circ = ['simulation_id','width', 'thickness', 'hole']
         self.geometries = {'wire' : self.wire,
                            'square' : self.square,
+                           'circ' : self.circ,
                            }
         self.adress = []
 
@@ -157,12 +170,19 @@ class QueryGenerator:
         #get the current simulation_id
         my_cursor.execute("SELECT MAX(simulation_id) FROM simulations;")
         id = my_cursor.fetchone()[0]
-        if id is None:
+        if not type(id) is int:
             id = 1
         else:
             id += 1
         print("ID: ", id)
         self.target_dict['simulation_id'] = id
+        return
+
+    def reset(self):
+        self.sim_query = 'INSERT INTO simulations ('
+        self.geo_query = 'INSERT INTO '
+        self.target_dict['hole'] = None
+        self.target_dict['rounded_corner'] = None
         return
 
     def make_query(self, sql_dict):
@@ -228,8 +248,7 @@ class QueryGenerator:
             print(geo_data)
             print('\n')
 
-        self.sim_query = 'INSERT INTO simulations ('
-        self.geo_query = 'INSERT INTO '
+        self.reset()
 
         return
 
@@ -340,10 +359,10 @@ exl_list = [Exl('m-file', 'm_file'),
             Exl('cladding', 'cladding', [Exl.comma_split]),
             Exl('substrate', 'substrate',  [Exl.comma_split]),
             Exl('geom', 'geometry', [Exl.geo_setup]),
-            Exl('periode', 'periode' ),
+            Exl('periode', 'periode', [Exl.listify] ),
             Exl('wavelength', 'wavelength_start', [Exl.wav_split]),
             Exl('points', 'spectral_points'),
-            Exl('order', 'simulation_order'),
+            Exl('order', 'simulation_order', [Exl.listify]),
             Exl('length', 'length', [Exl.evaluate, Exl.listify]),
             Exl('width', 'width', [Exl.evaluate, Exl.listify]),
             Exl('thickness', 'thickness', [Exl.evaluate, Exl.listify]),
@@ -363,7 +382,6 @@ for cell in name_row:
         if exl.name in cell.value and exl.column is None:
             exl.column = cell.column -1
 
-
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator()
 for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
@@ -376,16 +394,29 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
         for exl in exl_list:
             if i == exl.column:
                 exl.data = row[i].value
+
     #Construct the sql_dict out of the exl_list
     for exl in exl_list:
+        #print(exl.name, 'at', exl.column)
         for opperation in exl.opperation_list:
-            opperation(exl)
+            try:
+                opperation(exl)
+            except Exception as e:
+                print(e)
+                query_gen.skip_row = True
         exl.write()
 
-    query_gen.generate(sql_dict)
+    if not query_gen.skip_row:
+        query_gen.generate(sql_dict)
+    else:
+        print('skipping row: ', row[0].row)
+        query_gen.failed_queries += 1
+        query_gen.skip_row = False
     print('')
 
 
-mydb.commit()
 print("{}/{} queries successful".format(
-     query_gen.valid_queries, query_gen.valid_queries + query_gen.failed_queries))
+query_gen.valid_queries, query_gen.valid_queries + query_gen.failed_queries))
+commit = input('Commit changes?')
+if commit == 'y':
+    mydb.commit()
