@@ -11,15 +11,14 @@ mydb = mc.connect(
 my_cursor = mydb.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
-ws = wb[sheets[int(sys.argv[1]) - 1]] #usable sheets are: 10,
-
+ws = wb[sheets[int(sys.argv[1]) - 1]] #usable sheets are: 10, 11, 16, 22
+"""
 my_cursor.execute("TRUNCATE TABLE simulations;")
 my_cursor.execute("TRUNCATE TABLE wire;")
 my_cursor.execute("TRUNCATE TABLE square;")
 my_cursor.execute("TRUNCATE TABLE circ;")
 my_cursor.execute("TRUNCATE TABLE disc;")
-
-
+"""
 sql_dict={ 'geometry': None ,
            'm_file': None ,
            'particle_material': None ,
@@ -38,6 +37,7 @@ sql_dict={ 'geometry': None ,
            'radius': None ,
            'rounded_corner': None ,
            'hole': None,
+           'image_source': None,
            'simulation_id': None ,
           }
 
@@ -126,6 +126,11 @@ class Exl:
                 self.data = self.data.split(',')
         return
 
+    def sem_check(self):
+        if not self.target_dict['image_source'] == 'SEM_FLAG':
+            self.data = None
+        return
+
     def geo_setup(self):
         self.data = self.data.lower()
 
@@ -137,8 +142,9 @@ class Exl:
             self.target_dict['hole'] = 1
 
         if 'sem' in self.data:
-            raise RuntimeError('Have not implemented SEM wires jet')
-            return
+            self.target_dict['image_source'] = 'SEM_FLAG'
+
+
         #check for valid sql-geometry
         for geo in self.geometries_list:
             if geo in self.data:
@@ -160,7 +166,7 @@ class QueryGenerator:
         self.failed_queries = 0
         self.skip_row = False
         self.wire = ['simulation_id', 'length', 'width', 'thickness','corner_radius',
-                    'rounded_corner']
+                    'rounded_corner', 'image_source']
         self.square = ['simulation_id', 'length', 'width', 'thickness', 'hole']
         self.circ = ['simulation_id','width', 'thickness', 'hole']
         self.geometries = {'wire' : self.wire,
@@ -182,8 +188,6 @@ class QueryGenerator:
         return
 
     def reset(self):
-        self.sim_query = 'INSERT INTO simulations ('
-        self.geo_query = 'INSERT INTO '
         self.target_dict['hole'] = None
         self.target_dict['rounded_corner'] = None
         return
@@ -246,7 +250,8 @@ class QueryGenerator:
             print('\n')
 
 
-        self.reset()
+        self.sim_query = 'INSERT INTO simulations ('
+        self.geo_query = 'INSERT INTO '
 
         return
 
@@ -365,6 +370,7 @@ exl_list = [Exl('m-file', 'm_file'),
             Exl('width', 'width', [Exl.evaluate, Exl.listify]),
             Exl('thickness', 'thickness', [Exl.evaluate, Exl.listify]),
             Exl('corner radius', 'corner_radius', [Exl.listify]),
+            Exl('draw', 'image_source', [Exl.sem_check])
             ]
 
 
@@ -373,12 +379,17 @@ exl_list = [Exl('m-file', 'm_file'),
 for row in ws.iter_rows():
     if 'file' in row[0].value:
         name_row = row
+        break
 
 #find the position of each excel collumn
+activ_cols = []
 for cell in name_row:
     for exl in exl_list:
         if exl.name in cell.value and exl.column is None:
+            if cell.column -1 in activ_cols:
+                continue
             exl.column = cell.column -1
+            activ_cols.append(exl.column)
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator()
@@ -406,6 +417,7 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
 
     if not query_gen.skip_row:
         query_gen.generate(sql_dict)
+        query_gen.reset()
     else:
         print('skipping row: ', row[0].row)
         query_gen.failed_queries += 1
