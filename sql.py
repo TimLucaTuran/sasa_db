@@ -265,7 +265,7 @@ class QueryGenerator:
         #find the colums which have list-values
         list_vals = [(key, val) for key, val in sql_dict.items()
                     if type(val) is list]
-        list_vals.sort(key = lambda tup : len(tup[1]), reverse = True)
+        list_vals.sort(key = lambda tup : len(tup[1]))
 
         #check if there are multiple values with the same dimension.
         #In this case the adress system won't work because it can't know which
@@ -339,7 +339,7 @@ class QueryGenerator:
                     sql_dict[key_1] = list_1[j]
                     self.adress[1] = j
                     for k in range(len(list_2)):
-                        sql_dict[key_2] = list_1[k]
+                        sql_dict[key_2] = list_2[k]
                         self.adress[2] = k
                         sql_dict['adress'] = str(self.adress)
                         self.make_query(sql_dict)
@@ -362,7 +362,7 @@ exl_list = [Exl('m-file', 'm_file'),
             Exl('cladding', 'cladding', [Exl.comma_split]),
             Exl('substrate', 'substrate',  [Exl.comma_split]),
             Exl('geom', 'geometry', [Exl.geo_setup]),
-            Exl('periode', 'periode', [Exl.listify] ),
+            Exl('period', 'periode', [Exl.listify] ),
             Exl('wavelength', 'wavelength_start', [Exl.wav_split]),
             Exl('points', 'spectral_points'),
             Exl('order', 'simulation_order', [Exl.listify]),
@@ -388,8 +388,10 @@ for cell in name_row:
         if exl.name in cell.value and exl.column is None:
             if cell.column -1 in activ_cols:
                 continue
-            exl.column = cell.column -1
-            activ_cols.append(exl.column)
+            else:
+                exl.column = cell.column -1
+                activ_cols.append(exl.column)
+
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator()
