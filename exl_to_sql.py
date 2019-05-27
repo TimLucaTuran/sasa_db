@@ -11,41 +11,18 @@ mydb = mc.connect(
 my_cursor = mydb.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
-ws = wb[sheets[int(sys.argv[1]) - 1]] #usable sheets are: 10, 11, 16, 22
-"""
-my_cursor.execute("TRUNCATE TABLE simulations;")
-my_cursor.execute("TRUNCATE TABLE wire;")
-my_cursor.execute("TRUNCATE TABLE square;")
-my_cursor.execute("TRUNCATE TABLE circ;")
-my_cursor.execute("TRUNCATE TABLE disc;")
-"""
-sql_dict={ 'geometry': None ,
-           'm_file': None ,
-           'particle_material': None ,
-           'cladding': None ,
-           'substrate': None ,
-           'periode': None ,
-           'wavelength_start': None ,
-           'wavelength_stop': None ,
-           'spectral_points': None ,
-           'simulation_order': None ,
-           'adress': None ,
-           'length': None ,
-           'width': None ,
-           'thickness': None ,
-           'corner_radius': None ,
-           'radius': None ,
-           'rounded_corner': None ,
-           'hole': None,
-           'image_source': None,
-           'simulation_id': None ,
-          }
+ws = wb[sheets[int(sys.argv[1]) - 1]] #usable sheets are: 10, 11, 16, 22 to do:
+truncate = False
+
 
 
 class Exl:
 #Define the Excel-Struct it holds information of a Excel-Cell and which
 #opperations need to be applied. For example the wavelength excel cell:
 #"0.64 ... 1.7" needs to be split into wavelength_start and _stop
+
+    target_dict = None #This defines a shared class attribute
+
     def __init__(self, name, target_key, opperation_list=[]):
         self.name = name
         self.target_key = target_key
@@ -154,11 +131,16 @@ class Exl:
             raise RuntimeError('Found no valid geometry in : {}'.format(self.data))
         return
 
+    def single(self):
+        if not 'single' in self.data:
+            raise ValueError('multi layer')
+        return
+
 
 
 
 class QueryGenerator:
-    def __init__(self, target_dict = sql_dict):
+    def __init__(self, target_dict):
         self.target_dict = target_dict
         self.sim_query = 'INSERT INTO simulations ('
         self.geo_query = 'INSERT INTO '
@@ -354,24 +336,56 @@ class QueryGenerator:
             print('list_vals: ',list_vals)
 
 
+sql_dict={ 'geometry': None ,
+           'm_file': None ,
+           'particle_material': None ,
+           'cladding': None ,
+           'substrate': None ,
+           'periode': None ,
+           'wavelength_start': None ,
+           'wavelength_stop': None ,
+           'spectral_points': None ,
+           'simulation_order': None ,
+           'adress': None ,
+           'angle_of_incidence' : None,
+           'length': None ,
+           'width': None ,
+           'thickness': None ,
+           'corner_radius': None ,
+           'radius': None ,
+           'rounded_corner': None ,
+           'hole': None,
+           'image_source': None,
+           'simulation_id': None ,
+          }
+
+Exl.target_dict = sql_dict
 
 #Define the excel_list with one Exl for every column
 #Setup ist Exl(excel_name, sql_name, [opperations])
-exl_list = [Exl('m-file', 'm_file'),
-            Exl('material', 'particle_material', [Exl.comma_split]),
+exl_list = [Exl('m-file', 'm_file',),
+            Exl('particle material', 'particle_material', [Exl.comma_split]),
             Exl('cladding', 'cladding', [Exl.comma_split]),
             Exl('substrate', 'substrate',  [Exl.comma_split]),
-            Exl('geom', 'geometry', [Exl.geo_setup]),
-            Exl('period', 'periode', [Exl.listify] ),
+            Exl('geometry', 'geometry', [Exl.geo_setup]),
+            Exl('periode', 'periode', [Exl.listify] ),
             Exl('wavelength', 'wavelength_start', [Exl.wav_split]),
-            Exl('points', 'spectral_points'),
+            Exl('spectral points', 'spectral_points'),
             Exl('order', 'simulation_order', [Exl.listify]),
+            Exl('angle of incidence', 'angle_of_incidence', [Exl.listify]),
             Exl('length', 'length', [Exl.evaluate, Exl.listify]),
             Exl('width', 'width', [Exl.evaluate, Exl.listify]),
             Exl('thickness', 'thickness', [Exl.evaluate, Exl.listify]),
             Exl('corner radius', 'corner_radius', [Exl.listify]),
-            Exl('draw', 'image_source', [Exl.sem_check])
+            Exl('draw file', 'image_source', [Exl.sem_check]),
             ]
+
+if truncate:
+    my_cursor.execute("TRUNCATE TABLE simulations;")
+    my_cursor.execute("TRUNCATE TABLE wire;")
+    my_cursor.execute("TRUNCATE TABLE square;")
+    my_cursor.execute("TRUNCATE TABLE circ;")
+    my_cursor.execute("TRUNCATE TABLE disc;")
 
 
 ####Read the excel data into the exl_list
@@ -382,19 +396,14 @@ for row in ws.iter_rows():
         break
 
 #find the position of each excel collumn
-activ_cols = []
 for cell in name_row:
     for exl in exl_list:
-        if exl.name in cell.value and exl.column is None:
-            if cell.column -1 in activ_cols:
-                continue
-            else:
-                exl.column = cell.column -1
-                activ_cols.append(exl.column)
-
+        if exl.name == cell.value:
+            exl.column = cell.column -1
+            break
 
 ####Main loop: Generate SQL-queries for every Excel row####
-query_gen = QueryGenerator()
+query_gen = QueryGenerator(sql_dict)
 for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
     #Break on empty row
     if len(row[0].value) == 0:
@@ -408,7 +417,6 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
 
     #Construct the sql_dict out of the exl_list
     for exl in exl_list:
-        #print(exl.name, 'at', exl.column)
         for opperation in exl.opperation_list:
             try:
                 opperation(exl)
