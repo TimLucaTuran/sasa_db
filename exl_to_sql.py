@@ -11,7 +11,8 @@ mydb = mc.connect(
 my_cursor = mydb.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
-ws = wb[sheets[int(sys.argv[1]) - 1]] #usable sheets are: 10, 11, 16, 22 to do:
+sheet_number = int(sys.argv[1]) - 1
+ws = wb[sheets[sheet_number]] #usable sheets are: 10, 11, 16, 22 to do:
 truncate = False
 
 
@@ -132,11 +133,10 @@ class Exl:
         return
 
     def single(self):
-        if not 'single' in self.data:
+        single_list = [10, 14]
+        if not 'single' in self.data and sheet_number in single_list:
             raise ValueError('multi layer')
         return
-
-
 
 
 class QueryGenerator:
@@ -150,10 +150,12 @@ class QueryGenerator:
         self.wire = ['simulation_id', 'length', 'width', 'thickness','corner_radius',
                     'rounded_corner', 'image_source']
         self.square = ['simulation_id', 'length', 'width', 'thickness', 'hole']
-        self.circ = ['simulation_id','width', 'thickness', 'hole']
+        self.circ = ['simulation_id', 'width', 'thickness', 'hole']
+        self.L = []
         self.geometries = {'wire' : self.wire,
                            'square' : self.square,
                            'circ' : self.circ,
+                           'L' : self.L,
                            }
         self.adress = []
 
@@ -355,6 +357,7 @@ sql_dict={ 'geometry': None ,
            'radius': None ,
            'rounded_corner': None ,
            'hole': None,
+           'girth': None,
            'image_source': None,
            'simulation_id': None ,
           }
@@ -363,7 +366,7 @@ Exl.target_dict = sql_dict
 
 #Define the excel_list with one Exl for every column
 #Setup ist Exl(excel_name, sql_name, [opperations])
-exl_list = [Exl('m-file', 'm_file',),
+exl_list = [Exl('m-file', 'm_file', [Exl.single]),
             Exl('particle material', 'particle_material', [Exl.comma_split]),
             Exl('cladding', 'cladding', [Exl.comma_split]),
             Exl('substrate', 'substrate',  [Exl.comma_split]),
@@ -378,6 +381,7 @@ exl_list = [Exl('m-file', 'm_file',),
             Exl('thickness', 'thickness', [Exl.evaluate, Exl.listify]),
             Exl('corner radius', 'corner_radius', [Exl.listify]),
             Exl('draw file', 'image_source', [Exl.sem_check]),
+            Exl('girth', 'girth', [Exl.listify])
             ]
 
 if truncate:
@@ -404,7 +408,7 @@ for cell in name_row:
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator(sql_dict)
-for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
+for row in ws.iter_rows(name_row[0].row + 1, 6): #ws.max_row):
     #Break on empty row
     if len(row[0].value) == 0:
         break
