@@ -11,8 +11,8 @@ mydb = mc.connect(
 my_cursor = mydb.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
-sheet_number = int(sys.argv[1]) - 1
-ws = wb[sheets[sheet_number]] #usable sheets are: 10, 11, 16, 22 to do:
+sheet_number = int(sys.argv[1])
+ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 16, 22 to do:
 truncate = False
 
 
@@ -49,8 +49,8 @@ class Exl:
         else:
             print("couldn't wav-split")
             return
-        start = both[0]
-        stop = both[1]
+        start = both[0].strip()
+        stop = both[1].strip()
 
         #copy stop to the SQL list, start will be taken care of by write()
         self.target_dict['wavelength_stop'] = stop
@@ -134,8 +134,9 @@ class Exl:
 
     def single(self):
         single_list = [10, 14]
-        if not 'single' in self.data and sheet_number in single_list:
-            raise ValueError('multi layer')
+        if sheet_number in single_list:
+            if not 'single' in self.data:
+                raise ValueError('skipping stack simulation')
         return
 
 
@@ -408,7 +409,7 @@ for cell in name_row:
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator(sql_dict)
-for row in ws.iter_rows(name_row[0].row + 1, 6): #ws.max_row):
+for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
     #Break on empty row
     if len(row[0].value) == 0:
         break
