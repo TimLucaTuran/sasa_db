@@ -58,12 +58,16 @@ class Crawler:
             passwd = "tltit69z",
             database = "meta_materials",
         )
-        cursor = mydb.cursor()
-        query = '''SELECT  particle_material, cladding, substrate, periode, wavelength_start,
+        cursor = mydb.cursor(buffered=True)
+        query = '''SELECT  simulation_id, particle_material, cladding, substrate, periode, wavelength_start,
         wavelength_stop FROM simulations WHERE m_file = "{}"'''.format(name)
         cursor.execute(query)
         row = cursor.fetchone()
-        return row
+        id = row[0]
+        query2 = 'SELECT length, width, thickness FROM wire WHERE simulation_id = {}'.format(id)
+        cursor.execute(query2)
+        geo = cursor.fetchone()
+        return row + geo
 
 #%%
 if __name__ == '__main__':

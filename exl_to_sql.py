@@ -150,7 +150,7 @@ class QueryGenerator:
         self.skip_row = False
         self.wire = ['simulation_id', 'length', 'width', 'thickness','corner_radius',
                     'rounded_corner', 'image_source']
-        self.square = ['simulation_id', 'length', 'width', 'thickness', 'hole']
+        self.square = ['simulation_id', 'width', 'thickness', 'hole']
         self.circ = ['simulation_id', 'width', 'thickness', 'hole']
         self.L = []
         self.geometries = {'wire' : self.wire,
@@ -222,6 +222,9 @@ class QueryGenerator:
         #Try to execute the queries
         try:
             my_cursor.execute(self.sim_query, tuple(sim_data))
+            print(self.geo_query)
+            print(geo_data)
+            print('\n')
             my_cursor.execute(self.geo_query, tuple(geo_data))
             self.valid_queries += 1
         except Exception as e:
@@ -403,9 +406,12 @@ for row in ws.iter_rows():
 #find the position of each excel collumn
 for cell in name_row:
     for exl in exl_list:
-        if exl.name == cell.value:
+        if exl.name == cell.value.strip():
             exl.column = cell.column -1
             break
+
+for exl in exl_list:
+    print(exl.name, exl.column)
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator(sql_dict)
