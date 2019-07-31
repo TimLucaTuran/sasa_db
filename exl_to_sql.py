@@ -1,14 +1,9 @@
-import mysql.connector as mc
+import sqlite3
 import os, sys
 import openpyxl
 
-mydb = mc.connect(
-    host = "localhost",
-    user = "root",
-    passwd = "tltit69z",
-    database = "meta_materials",
-)
-my_cursor = mydb.cursor()
+conn = sqlite3.connect('meta_materials.db')
+my_cursor = conn.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
 sheet_number = int(sys.argv[1])
@@ -16,7 +11,7 @@ ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 16, 22 to do:
 truncate = False
 
 
-
+#%%
 class Exl:
 #Define the Excel-Struct it holds information of a Excel-Cell and which
 #opperations need to be applied. For example the wavelength excel cell:
@@ -162,7 +157,7 @@ class QueryGenerator:
 
     def update_id(self):
         #get the current simulation_id
-        my_cursor.execute("SELECT MAX(simulation_id) FROM simulations;")
+        my_cursor.execute("SELECT last_insert_rowid()")
         id = my_cursor.fetchone()[0]
         if id is None:
             id = 1
@@ -193,7 +188,7 @@ class QueryGenerator:
 
         self.sim_query = self.sim_query[:-2]
         self.sim_query += ') VALUES ('
-        self.sim_query += len(sim_data)* "%s, "
+        self.sim_query += len(sim_data)* "?, "
         self.sim_query = self.sim_query[:-2]
         self.sim_query += ')'
 
@@ -215,17 +210,19 @@ class QueryGenerator:
 
         self.geo_query = self.geo_query[:-2]
         self.geo_query += ') VALUES ('
-        self.geo_query += len(geo_data)*"%s, "
+        self.geo_query += len(geo_data)*"?, "
         self.geo_query = self.geo_query[:-2]
         self.geo_query += ')'
 
         #Try to execute the queries
         try:
-            my_cursor.execute(self.sim_query, tuple(sim_data))
+            with conn:
+                my_cursor.execute(self.sim_query, tuple(sim_data))
             print(self.geo_query)
             print(geo_data)
             print('\n')
-            my_cursor.execute(self.geo_query, tuple(geo_data))
+            with conn:
+                my_cursor.execute(self.geo_query, tuple(geo_data))
             self.valid_queries += 1
         except Exception as e:
             self.failed_queries += 1
@@ -450,4 +447,5 @@ print("{}/{} queries successful".format(
 query_gen.valid_queries, query_gen.valid_queries + query_gen.failed_queries))
 commit = input('Commit changes?')
 if commit == 'y':
-    mydb.commit()
+    conn.commit()
+conn.close()
