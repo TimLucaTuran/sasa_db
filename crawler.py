@@ -1,6 +1,6 @@
 import subprocess
+import sqlite3
 from scipy.io import loadmat
-import mysql.connector as mc
 
 def mat_print(mat):
     for i in range(4):
@@ -80,17 +80,13 @@ class Crawler:
 
 #%%
 if __name__ == '__main__':
-    mydb = mc.connect(
-        host = "localhost",
-        user = "root",
-        passwd = "tltit69z",
-        database = "meta_materials",
-    )
-    cursor = mydb.cursor(buffered=True)
+    conn = sqlite3.connect('meta_materials.db')
+    cursor = conn.cursor()
 
 #%%
     crawler = Crawler(directory='/run/media/tim/D4C5-A3BA/', cursor=cursor)
     ids = crawler.find_ids()
+    ids
     smat = crawler.find_smat_by_id(ids[0])
     mat_print(smat[0,:,:])
     #mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
@@ -100,3 +96,5 @@ if __name__ == '__main__':
     crawler2 = Crawler(directory='/home/tim/Desktop/S_matrices', cursor=cursor)
     mat = crawler2.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
     mat_print(mat[0,:,:])
+#%%
+    #crawler.extract_all(target_dict='/home/tim/Desktop/S_matrices2')
