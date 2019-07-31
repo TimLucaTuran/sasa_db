@@ -1,4 +1,5 @@
 /*
+CREATE DATABASE meta_materials;
 USE meta_materials;
 CREATE TABLE simulations(
     simulation_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -8,7 +9,7 @@ CREATE TABLE simulations(
     substrate VARCHAR(30),
     periode INT UNSIGNED,
     spectral_points INT UNSIGNED,
-    simulation_order INT UNSIGNED,
+    simulation_order INT UNSIGNED
 );
 
 CREATE TABLE square(
