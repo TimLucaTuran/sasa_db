@@ -2,6 +2,7 @@ import sqlite3
 import os, sys
 import openpyxl
 
+#Connect to the sqlite3 db and the exel sheet
 conn = sqlite3.connect('meta_materials.db')
 my_cursor = conn.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")

@@ -2,23 +2,26 @@ import subprocess
 import sqlite3
 from scipy.io import loadmat
 
-def mat_print(mat):
-    for i in range(4):
-        print('{:+.2f} {:+.2f} {:+.2f} {:+.2f}'.format(mat[i, 0], mat[i,1], mat[i,2], mat[i,3]))
 
 class Crawler:
+    """This Modul allows to load S-matrices from a target directory. Find the
+    nessecary name/Id in the 'meta_materials.db'. You need to be able to execute
+    Bash commands. For example usage look below in the 'if name == main' section.
+
+    Parameters
+    ---------------
+    directory : path to directory containing the .mat files
+    cursor : sqlite3 cursor to 'meta_materials.db'
+    """
     def __init__(self, directory, cursor = None):
         self.directory = directory
         self.cursor = cursor
 
     def find_path(self, name):
-        print(name)
         bashCommand = 'find {} -name *{}*.mat -print -quit'.format(self.directory, name)
-
         process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
         output, error = process.communicate()
         path = output[:-1].decode('UTF-8')
-        print(path)
         return path
 
 
@@ -31,7 +34,7 @@ class Crawler:
             wav_length_dim = smat.shape[-3]
             adress += [slice(wav_length_dim), slice(4), slice(4)]
             if len(smat.shape) != len(adress):
-                raise RuntimeError(
+                raise ValueError(
                 'ERROR: S-Mat {} has unexpected shape: {}'.format(name, smat.shape))
             return smat[tuple(adress)]
 
@@ -49,6 +52,9 @@ class Crawler:
 
 
     def extract_all(self, target_dict):
+        """CAREFUL: This method copies all the useful .mat files from self.directory
+        to target_dict."""
+
         self.cursor.execute('select m_file from simulations')
         names = [name[0] for name in self.cursor.fetchall()]
         names = set(names)
@@ -77,24 +83,17 @@ class Crawler:
         ids = [id[0] for id in self.cursor.fetchall()]
         return ids
 
+def mat_print(mat):
+    for i in range(4):
+        print('{:+.2f} {:+.2f} {:+.2f} {:+.2f}'.format(mat[i, 0], mat[i,1], mat[i,2], mat[i,3]))
+
 
 #%%
 if __name__ == '__main__':
+    #create a crawler object
     conn = sqlite3.connect('meta_materials.db')
     cursor = conn.cursor()
-
-#%%
     crawler = Crawler(directory='/run/media/tim/D4C5-A3BA/', cursor=cursor)
-    ids = crawler.find_ids()
-    ids
-    smat = crawler.find_smat_by_id(ids[0])
-    mat_print(smat[0,:,:])
-    #mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
-    #mat_print(mat[0,:,:])
-    #crawler.extract_params('Chi_RotWire_1_rounded_Ti_n')
-    #crawler.extract_all(target_dict='/home/tim/Desktop/S_matrices')
-    crawler2 = Crawler(directory='/home/tim/Desktop/S_matrices', cursor=cursor)
-    mat = crawler2.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
+
+    mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
     mat_print(mat[0,:,:])
-#%%
-    #crawler.extract_all(target_dict='/home/tim/Desktop/S_matrices2')
