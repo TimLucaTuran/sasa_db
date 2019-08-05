@@ -5,7 +5,7 @@ from scipy.io import loadmat
 
 class Crawler:
     """This Modul allows to load S-matrices from a target directory. Find the
-    nessecary name/Id in the 'meta_materials.db'. You need to be able to execute
+    nessecary name/ID in the 'meta_materials.db'. You need to be able to execute
     Bash commands. For example usage look below in the 'if name == main' section.
 
     Parameters
@@ -68,20 +68,42 @@ class Crawler:
 
 
     def extract_params(self, id):
-        query = '''SELECT  particle_material, cladding, substrate, periode, wavelength_start,
+        #currently just for the wire geometry
+        query = '''SELECT particle_material, cladding, substrate, periode, wavelength_start,
         wavelength_stop FROM simulations WHERE simulation_id = {}'''.format(id)
         self.cursor.execute(query)
-        row = self.cursor.fetchone()
+        simulation = self.cursor.fetchone()
         query2 = 'SELECT length, width, thickness FROM wire WHERE simulation_id = {}'.format(id)
         self.cursor.execute(query2)
-        geo = self.cursor.fetchone()
-        return list(row + geo)
+        geometry = self.cursor.fetchone()
+        keys = ['particle_material', 'cladding', 'substrate','periode',
+                'wavelength_start', 'wavelength_stop', 'length', 'width', 'thickness']
+        print('sim: ', simulation, 'geo: ', geometry)
+        vals = simulation + geometry
+        dict = {keys[i] : vals[i] for i in range(len(vals))}
+        return dict
 
-    def find_ids(self):
-        query = 'SELECT simulation_id FROM simulations WHERE m_file LIKE "Chi_RotWire%"'
-        self.cursor.execute(query)
+    def check_db_for_correct_dimensions(self):
+        working = 0
+        all = 0
+        self.cursor.execute('SELECT simulation_id FROM simulations')
         ids = [id[0] for id in self.cursor.fetchall()]
-        return ids
+        for id in ids:
+            all += 1
+            print('checking ID: ', id)
+            try:
+                smat = self.find_smat_by_id(id)
+            except Exception as e:
+                print('couldnt load smat:')
+                print(e)
+            self.cursor.execute("""SELECT adress, m_file FROM simulations WHERE
+            simulation_id == {}""".format(id))
+            row = self.cursor.fetchone()
+            adress = eval(row[0])
+            if len(smat.shape) != len(adress):
+                print('ID: ', id,'Name: ', row[1])
+                print('has unexpected shape: ', smat.shape)
+
 
 def mat_print(mat):
     for i in range(4):
@@ -93,7 +115,13 @@ if __name__ == '__main__':
     #create a crawler object
     conn = sqlite3.connect('meta_materials.db')
     cursor = conn.cursor()
-    crawler = Crawler(directory='/run/media/tim/D4C5-A3BA/', cursor=cursor)
+    crawler = Crawler(directory='collected_mats/', cursor=cursor)
 
+    #load and print a S-Mat
     mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
     mat_print(mat[0,:,:])
+
+    #load the paramesters of the S-Mat
+
+    dict = crawler.extract_params(id = 282)
+    crawler.check_db_for_correct_dimensions()
