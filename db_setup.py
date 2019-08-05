@@ -4,8 +4,8 @@ c = conn.cursor()
 
 with conn:
     c.execute("""CREATE TABLE simulations(
-        simulation_id INTEGER PRIMARY KEY,
-        m_file VARCHAR(70),
+        simulation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        m_file TEXT,
         adress VARCHAR(30),
         particle_material VARCHAR(30),
         cladding VARCHAR(30),

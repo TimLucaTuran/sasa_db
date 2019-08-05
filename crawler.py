@@ -96,6 +96,8 @@ class Crawler:
             except Exception as e:
                 print('couldnt load smat:')
                 print(e)
+                continue
+            '''
             self.cursor.execute("""SELECT adress, m_file FROM simulations WHERE
             simulation_id == {}""".format(id))
             row = self.cursor.fetchone()
@@ -103,6 +105,11 @@ class Crawler:
             if len(smat.shape) != len(adress):
                 print('ID: ', id,'Name: ', row[1])
                 print('has unexpected shape: ', smat.shape)
+                continue
+            '''
+            print('Entry clean')
+            working += 1
+        print('{} out of {} entries working'.format(working, all))
 
 
 def mat_print(mat):

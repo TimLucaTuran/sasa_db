@@ -128,7 +128,11 @@ class Exl:
             raise RuntimeError('Found no valid geometry in : {}'.format(self.data))
         return
 
-    def single(self):
+    def skip_check(self):
+        #skip manually marked rows
+        if 'skip' in self.data:
+            raise ValueError('skipping marked row')
+
         single_list = [10, 14]
         if sheet_number in single_list:
             if not 'single' in self.data:
@@ -219,6 +223,8 @@ class QueryGenerator:
         try:
             with conn:
                 my_cursor.execute(self.sim_query, tuple(sim_data))
+            print(self.sim_query)
+            print(sim_data)
             print(self.geo_query)
             print(geo_data)
             print('\n')
@@ -368,7 +374,7 @@ Exl.target_dict = sql_dict
 
 #Define the excel_list with one Exl for every column
 #Setup ist Exl(excel_name, sql_name, [opperations])
-exl_list = [Exl('m-file', 'm_file', [Exl.single]),
+exl_list = [Exl('m-file', 'm_file', [Exl.skip_check]),
             Exl('particle material', 'particle_material', [Exl.comma_split]),
             Exl('cladding', 'cladding', [Exl.comma_split]),
             Exl('substrate', 'substrate',  [Exl.comma_split]),
@@ -387,11 +393,13 @@ exl_list = [Exl('m-file', 'm_file', [Exl.single]),
             ]
 
 if truncate:
-    my_cursor.execute("TRUNCATE TABLE simulations;")
-    my_cursor.execute("TRUNCATE TABLE wire;")
-    my_cursor.execute("TRUNCATE TABLE square;")
-    my_cursor.execute("TRUNCATE TABLE circ;")
-    my_cursor.execute("TRUNCATE TABLE disc;")
+    my_cursor.execute("DELETE FROM simulations;")
+    my_cursor.execute("DELETE FROM wire;")
+    my_cursor.execute("DELETE FROM square;")
+    my_cursor.execute("DELETE FROM circ;")
+    my_cursor.execute("DELETE FROM disc;")
+    conn.commit()
+    my_cursor.execute("VACUUM")
 
 
 ####Read the excel data into the exl_list
