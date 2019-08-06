@@ -159,6 +159,12 @@ class QueryGenerator:
                            'L' : self.L,
                            }
         self.adress = []
+        self.dummy_dict = {'Chi_RotWire_1_rounded_Ti_d' : 0,
+                           'Chi_RotWire_1_rounded_Ti_h' : 0,
+                           'Chi_RotWire_1_rounded_Ti_k' : 0,
+                           'Chi_RotWire_2_rounded_Ti_a' : 0,
+                           'Chi_RotWire_2_rounded_Ti_g' : 0,
+                           }
 
     def update_id(self):
         #get the current simulation_id
@@ -177,7 +183,24 @@ class QueryGenerator:
         self.target_dict['rounded_corner'] = None
         return
 
+    def dummy_dimension_check(self, sql_dict):
+        """Some Data-Entries have extra dimensions which are not recorded
+        for example: Ti Adhesion-Layer-Height. These need to be squished."""
+        name = sql_dict['m_file']
+        print(name, sql_dict['adress'], type(sql_dict['adress']))
+        if name in self.dummy_dict:
+            #modify the adress so that only dummy attribute 0 can be accesed
+            if sql_dict['adress'] is None:
+                sql_dict['adress'] = [0]
+            else:
+                eval(sql_dict['adress']).insert(self.dummy_dict[name], 0)
+        return
+
+
+
     def make_query(self, sql_dict):
+        self.dummy_dimension_check(sql_dict)
+
         ###simulations query
         #consruct the list which holds the sql data to be submitted
         sim_data = []

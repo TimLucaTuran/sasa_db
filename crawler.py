@@ -125,10 +125,10 @@ if __name__ == '__main__':
     crawler = Crawler(directory='collected_mats/', cursor=cursor)
 
     #load and print a S-Mat
-    mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_n', adress=[1,1,1])
-    mat_print(mat[0,:,:])
-
+    mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_d')
+    mat.shape
     #load the paramesters of the S-Mat
 
-    dict = crawler.extract_params(id = 282)
+    """dict = crawler.extract_params(id = 282)
     crawler.check_db_for_correct_dimensions()
+"""
