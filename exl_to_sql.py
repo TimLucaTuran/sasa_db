@@ -170,10 +170,6 @@ class QueryGenerator:
         #get the current simulation_id
         my_cursor.execute("SELECT last_insert_rowid()")
         id = my_cursor.fetchone()[0]
-        if id is None:
-            id = 1
-        else:
-            id += 1
         print("ID: ", id)
         self.target_dict['simulation_id'] = id
         return
@@ -199,6 +195,9 @@ class QueryGenerator:
 
 
     def make_query(self, sql_dict):
+        self.sim_query = 'INSERT INTO simulations ('
+        self.geo_query = 'INSERT INTO '
+
         self.dummy_dimension_check(sql_dict)
 
         ###simulations query
@@ -220,11 +219,26 @@ class QueryGenerator:
         self.sim_query = self.sim_query[:-2]
         self.sim_query += ')'
 
+        try:
+            with conn:
+                my_cursor.execute(self.sim_query, tuple(sim_data))
+            print(self.sim_query)
+            print(sim_data)
+
+        except Exception as e:
+            self.failed_queries += 1
+            print('Bad query')
+            print(e)
+            print(self.sim_query)
+            print(sim_data)
+            return
+
         #geometry query
         self.update_id()
         current_geo = self.geometries[sql_dict['geometry']]
         self.geo_query += sql_dict['geometry']
         self.geo_query += ' ('
+
 
         #select the activ part of the dict for current geometry
         active_dict = [(key, val) for key, val in sql_dict.items() if key in current_geo]
@@ -245,28 +259,22 @@ class QueryGenerator:
         #Try to execute the queries
         try:
             with conn:
-                my_cursor.execute(self.sim_query, tuple(sim_data))
-            print(self.sim_query)
-            print(sim_data)
-            print(self.geo_query)
-            print(geo_data)
-            print('\n')
-            with conn:
                 my_cursor.execute(self.geo_query, tuple(geo_data))
-            self.valid_queries += 1
-        except Exception as e:
-            self.failed_queries += 1
-            print('Bad query')
-            print(e)
-            print(self.sim_query)
-            print(sim_data)
             print(self.geo_query)
             print(geo_data)
             print('\n')
+            self.valid_queries += 1
+
+        except Exception as e:
+            print('Bad query:')
+            print(e)
+            print(self.geo_query)
+            print(geo_data)
+            print('\n')
+            self.failed_queries += 1
 
 
-        self.sim_query = 'INSERT INTO simulations ('
-        self.geo_query = 'INSERT INTO '
+
 
         return
 

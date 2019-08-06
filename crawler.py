@@ -125,7 +125,7 @@ if __name__ == '__main__':
     crawler = Crawler(directory='collected_mats/', cursor=cursor)
 
     #load and print a S-Mat
-    mat = crawler.find_smat('Chi_RotWire_1_rounded_Ti_d')
+    mat = crawler.find_smat('HyperVis_al_square_holes_1')
     mat.shape
     #load the paramesters of the S-Mat
 
