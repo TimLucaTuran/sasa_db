@@ -46,7 +46,6 @@ class Crawler:
         adress = row[1]
         if type(adress) is str:
             adress = eval(adress)
-        print('ID: ',id,' has adress: ', adress)
         return self.find_smat(name, adress)
 
 
@@ -68,17 +67,16 @@ class Crawler:
 
 
     def extract_params(self, id):
-        #currently just for the wire geometry
+        #currently just for the square geometry
         query = '''SELECT particle_material, cladding, substrate, periode, wavelength_start,
         wavelength_stop FROM simulations WHERE simulation_id = {}'''.format(id)
         self.cursor.execute(query)
         simulation = self.cursor.fetchone()
-        query2 = 'SELECT length, width, thickness FROM wire WHERE simulation_id = {}'.format(id)
+        query2 = 'SELECT width, thickness FROM square WHERE simulation_id = {}'.format(id)
         self.cursor.execute(query2)
         geometry = self.cursor.fetchone()
         keys = ['particle_material', 'cladding', 'substrate','periode',
-                'wavelength_start', 'wavelength_stop', 'length', 'width', 'thickness']
-        print('sim: ', simulation, 'geo: ', geometry)
+                'wavelength_start', 'wavelength_stop', 'width', 'thickness']
         vals = simulation + geometry
         dict = {keys[i] : vals[i] for i in range(len(vals))}
         return dict
