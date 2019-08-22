@@ -18,7 +18,7 @@ class Crawler:
         self.cursor = cursor
 
     def find_path(self, name):
-        bashCommand = 'find {} -name *{}*.mat -print -quit'.format(self.directory, name)
+        bashCommand = 'find {} -name *{}*Daten_gesamt.mat -print -quit'.format(self.directory, name)
         process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
         output, error = process.communicate()
         path = output[:-1].decode('UTF-8')
@@ -63,7 +63,6 @@ class Crawler:
             print(bashCommand)
             process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
             output, error = process.communicate()
-            print(output, error)
 
 
     def extract_params(self, id):
@@ -126,7 +125,7 @@ if __name__ == '__main__':
     mat = crawler.find_smat('HyperVis_al_square_holes_1')
     mat.shape
     #load the paramesters of the S-Mat
-
+    crawler.extract_all(target_dict="collected_mats2/")
     """dict = crawler.extract_params(id = 282)
     crawler.check_db_for_correct_dimensions()
 """
