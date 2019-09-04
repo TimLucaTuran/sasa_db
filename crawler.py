@@ -68,14 +68,14 @@ class Crawler:
     def extract_params(self, id):
         #currently just for the square geometry
         query = '''SELECT particle_material, cladding, substrate, periode, wavelength_start,
-        wavelength_stop FROM simulations WHERE simulation_id = {}'''.format(id)
+        wavelength_stop, spectral_points  FROM simulations WHERE simulation_id = {}'''.format(id)
         self.cursor.execute(query)
         simulation = self.cursor.fetchone()
         query2 = 'SELECT width, thickness FROM square WHERE simulation_id = {}'.format(id)
         self.cursor.execute(query2)
         geometry = self.cursor.fetchone()
         keys = ['particle_material', 'cladding', 'substrate','periode',
-                'wavelength_start', 'wavelength_stop', 'width', 'thickness']
+                'wavelength_start', 'wavelength_stop', 'spectral_points', 'width', 'thickness']
         vals = simulation + geometry
         dict = {keys[i] : vals[i] for i in range(len(vals))}
         return dict
@@ -94,16 +94,6 @@ class Crawler:
                 print('couldnt load smat:')
                 print(e)
                 continue
-            '''
-            self.cursor.execute("""SELECT adress, m_file FROM simulations WHERE
-            simulation_id == {}""".format(id))
-            row = self.cursor.fetchone()
-            adress = eval(row[0])
-            if len(smat.shape) != len(adress):
-                print('ID: ', id,'Name: ', row[1])
-                print('has unexpected shape: ', smat.shape)
-                continue
-            '''
             print('Entry clean')
             working += 1
         print('{} out of {} entries working'.format(working, all))
@@ -119,13 +109,5 @@ if __name__ == '__main__':
     #create a crawler object
     conn = sqlite3.connect('meta_materials.db')
     cursor = conn.cursor()
-    crawler = Crawler(directory='collected_mats/', cursor=cursor)
-
-    #load and print a S-Mat
-    mat = crawler.find_smat('HyperVis_al_square_holes_1')
-    mat.shape
-    #load the paramesters of the S-Mat
-    crawler.extract_all(target_dict="collected_mats2/")
-    """dict = crawler.extract_params(id = 282)
-    crawler.check_db_for_correct_dimensions()
-"""
+    crawler = Crawler(directory='path_to_.mat_files', cursor=cursor)
+    crawler.extract_all(target_dict='path_to_extracted_.mat_files')
