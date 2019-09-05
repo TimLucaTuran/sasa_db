@@ -51,7 +51,7 @@ class Crawler:
 
 
     def extract_all(self, target_dict):
-        """CAREFUL: This method copies all the useful .mat files from self.directory
+        """CAREFULL: This method copies all the useful .mat files from self.directory
         to target_dict."""
 
         self.cursor.execute('select m_file from simulations')
