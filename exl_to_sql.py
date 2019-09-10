@@ -8,7 +8,7 @@ my_cursor = conn.cursor()
 wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
 sheet_number = int(sys.argv[1])
-ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 16, 22 to do:
+ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 14, 16, 22
 truncate = False
 
 

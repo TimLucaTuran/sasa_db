@@ -16,7 +16,7 @@ with conn:
         spectral_points INT UNSIGNED,
         simulation_order INT UNSIGNED,
         geometry TEXT CHECK(geometry IN ('wire','square','disc','circ') ),
-        angle_of_incidence INT)"""
+        angle_of_incidence INT DEFAULT 0)"""
         )
 
     c.execute("""CREATE TABLE square(
