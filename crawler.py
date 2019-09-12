@@ -9,9 +9,11 @@ class Crawler:
     nessecary name/ID in the 'meta_materials.db'. You need to be able to execute
     Bash commands. For example usage look below in the 'if name == main' section.
 
-    Args:
-        directory (str): path to directory containing the .mat files
-        cursor (obj): sqlite3 cursor to 'meta_materials.db'
+    Parameters
+    ----------
+    directory : str
+                path to directory containing the .mat files
+    cursor : sqlite3 cursor to 'meta_materials.db'
     """
     def __init__(self, directory, cursor = None):
         self.directory = directory
