@@ -9,7 +9,7 @@ wb = openpyxl.load_workbook("project_overview.xlsx")
 sheets = wb.sheetnames
 sheet_number = int(sys.argv[1])
 ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 14, 16, 22
-truncate = False
+
 
 
 #%%
@@ -422,15 +422,6 @@ exl_list = [Exl('m-file', 'm_file', [Exl.skip_check]),
             Exl('draw file', 'image_source', [Exl.sem_check]),
             Exl('girth', 'girth', [Exl.listify])
             ]
-
-if truncate:
-    my_cursor.execute("DELETE FROM simulations;")
-    my_cursor.execute("DELETE FROM wire;")
-    my_cursor.execute("DELETE FROM square;")
-    my_cursor.execute("DELETE FROM circ;")
-    my_cursor.execute("DELETE FROM disc;")
-    conn.commit()
-    my_cursor.execute("VACUUM")
 
 
 ####Read the excel data into the exl_list

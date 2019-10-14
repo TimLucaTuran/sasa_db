@@ -91,6 +91,7 @@ class Crawler:
         self.cursor.execute(query)
         simulation_data = list(self.cursor.fetchall()[0])
 
+
         #query for the names to simulation_data
         query = """SELECT sql FROM sqlite_master
                    WHERE tbl_name = 'simulations' AND type = 'table'"""
