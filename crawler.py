@@ -47,7 +47,7 @@ class Crawler:
         name = row[0]
         adress = row[1]
         if type(adress) is str:
-            adress = eval(adress)
+            adress = eval(adress,{"__builtins__":None})
         return self.find_smat(name, adress)
 
 
@@ -130,18 +130,24 @@ class Crawler:
     def check_db_for_correct_dimensions(self):
         working = 0
         all = 0
-        self.cursor.execute('SELECT simulation_id FROM simulations')
+        self.cursor.execute('SELECT simulation_id FROM simulations WHERE angle_of_incidence=0 AND geometry="square"')
         ids = [id[0] for id in self.cursor.fetchall()]
         for id in ids:
             all += 1
             print('checking ID: ', id)
+
             try:
+                #load smat and parameters
                 smat = self.find_smat_by_id(id)
+                param_dict = self.extract_params(id)
+                #extract relevant parameters
+                L = param_dict['spectral_points']
+                assert smat.shape == (L, 4, 4)
+
             except Exception as e:
                 print('couldnt load smat:')
                 print(e)
                 continue
-            print('Entry clean')
             working += 1
         print('{} out of {} entries working'.format(working, all))
 
@@ -156,9 +162,10 @@ if __name__ == '__main__':
     #create a crawler object
     conn = sqlite3.connect('meta_materials.db')
     cursor = conn.cursor()
-    crawler = Crawler(directory='path_to_.mat_files', cursor=cursor)
+    crawler = Crawler(directory='collected_mats', cursor=cursor)
 
 
-
-    crawler.extract_params(250)
+    #crawler.extract_params(250)
+    
+    crawler.check_db_for_correct_dimensions()
     #crawler.extract_all(target_dir='path_to_extracted_.mat_files')

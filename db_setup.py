@@ -21,10 +21,9 @@ with conn:
 
     c.execute("""CREATE TABLE square(
         simulation_id INT UNSIGNED PRIMARY KEY,
-        length INT UNSIGNED,
         width INT UNSIGNED,
         thickness INT UNSIGNED,
-        hole BOOL DEFAULT FALSE)"""
+        hole TEXT DEFAULT 'no holes')"""
         )
 
     c.execute("""CREATE TABLE wire(

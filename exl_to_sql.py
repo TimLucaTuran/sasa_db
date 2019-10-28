@@ -1,22 +1,35 @@
 import sqlite3
 import os, sys
 import openpyxl
+import argparse
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-db", "--databank", help="path to sqlite3-db", required=True)
+ap.add_argument("-exl", "--excel-sheet", help="path to excel-file", required=True)
+ap.add_argument("-n", "--sheet-number", help="which excel-sheet to convert",
+    type=int, required=True)
+ap.add_argument("-v", "--verbose", action="store_true", help="verbose output")
+args = vars(ap.parse_args())
+print(args)
 
 #Connect to the sqlite3 db and the exel sheet
-conn = sqlite3.connect('meta_materials.db')
+conn = sqlite3.connect(args["databank"])
 my_cursor = conn.cursor()
-wb = openpyxl.load_workbook("project_overview.xlsx")
+wb = openpyxl.load_workbook(args["excel_sheet"])
 sheets = wb.sheetnames
-sheet_number = int(sys.argv[1])
+sheet_number = args["sheet_number"]
 ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 14, 16, 22
 
 
 
 #%%
 class Exl:
-#Define the Excel-Struct it holds information of a Excel-Cell and which
-#opperations need to be applied. For example the wavelength excel cell:
-#"0.64 ... 1.7" needs to be split into wavelength_start and _stop
+    """Defines the Excel-Struct it holds information of a single Excel-Cell and which
+    opperations need to be applied. E.g. for the wavelength excel cell
+    "0.64 ... 1.7" needs to be split into wavelength_start and wavelength_stop
+    """
+
 
     target_dict = None #This defines a shared class attribute
 
@@ -100,6 +113,9 @@ class Exl:
                 self.data = self.data.split(',')
         return
 
+    def trim(self):
+        self.data = self.data.strip()
+
     def sem_check(self):
         if not self.target_dict['image_source'] == 'SEM_FLAG':
             self.data = None
@@ -113,7 +129,7 @@ class Exl:
             self.target_dict['rounded_corner'] = 1
 
         if 'hole' in self.data:
-            self.target_dict['hole'] = 1
+            self.target_dict['hole'] = 'holes'
 
         if 'sem' in self.data:
             self.target_dict['image_source'] = 'SEM_FLAG'
@@ -183,7 +199,7 @@ class QueryGenerator:
         """Some Data-Entries have extra dimensions which are not recorded
         for example: Ti Adhesion-Layer-Height. These need to be squished."""
         name = sql_dict['m_file']
-        print(name, sql_dict['adress'], type(sql_dict['adress']))
+        #print(name, sql_dict['adress'], type(sql_dict['adress']))
         if name in self.dummy_dict:
             #modify the adress so that only dummy attribute 0 can be accesed
             if sql_dict['adress'] is None:
@@ -222,8 +238,6 @@ class QueryGenerator:
         try:
             with conn:
                 my_cursor.execute(self.sim_query, tuple(sim_data))
-            print(self.sim_query)
-            print(sim_data)
 
         except Exception as e:
             self.failed_queries += 1
@@ -260,9 +274,6 @@ class QueryGenerator:
         try:
             with conn:
                 my_cursor.execute(self.geo_query, tuple(geo_data))
-            print(self.geo_query)
-            print(geo_data)
-            print('\n')
             self.valid_queries += 1
 
         except Exception as e:
@@ -406,7 +417,7 @@ Exl.target_dict = sql_dict
 #Define the excel_list with one Exl for every column
 #Setup ist Exl(excel_name, sql_name, [opperations])
 exl_list = [Exl('m-file', 'm_file', [Exl.skip_check]),
-            Exl('particle material', 'particle_material', [Exl.comma_split]),
+            Exl('particle material', 'particle_material', [Exl.comma_split, Exl.trim]),
             Exl('cladding', 'cladding', [Exl.comma_split]),
             Exl('substrate', 'substrate',  [Exl.comma_split]),
             Exl('geometry', 'geometry', [Exl.geo_setup]),
@@ -438,17 +449,18 @@ for cell in name_row:
             exl.column = cell.column -1
             break
 
-for exl in exl_list:
-    print(exl.name, exl.column)
+if args["verbose"]:
+    for exl in exl_list:
+        print(exl.name, exl.column)
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator(sql_dict)
-for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
+for row in ws.iter_rows(name_row[0].row + 1, ws.max_row):
+#for row in ws.iter_rows(18, 23):
     #Break on empty row
     if len(row[0].value) == 0:
         break
     #Load the data of the row
-    print('row: ', row[0].row)
     for i in range(len(row)):
         for exl in exl_list:
             if i == exl.column:
@@ -460,6 +472,9 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
             try:
                 opperation(exl)
             except Exception as e:
+
+                print("Opperation {} on exl {} failed: ".format(
+                    opperation.__name__, exl.name))
                 print(e)
                 query_gen.skip_row = True
         exl.write()
@@ -476,7 +491,9 @@ for row in ws.iter_rows(name_row[0].row + 1, ws.max_row): #ws.max_row):
 
 print("{}/{} queries successful".format(
 query_gen.valid_queries, query_gen.valid_queries + query_gen.failed_queries))
-commit = input('Commit changes?')
-if commit == 'y':
-    conn.commit()
+
+if args["verbose"]:
+    commit = input('Commit changes?')
+    if commit == 'y':
+        conn.commit()
 conn.close()
