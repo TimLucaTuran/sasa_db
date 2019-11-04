@@ -2,6 +2,10 @@ import subprocess
 import sqlite3
 from scipy.io import loadmat
 import re
+import numpy as np
+import os
+import random
+import shelve
 
 
 class Crawler:
@@ -12,12 +16,13 @@ class Crawler:
     Parameters
     ----------
     directory : str
-                path to directory containing the .mat files
+                path to directory containing the .mat/.npy files
     cursor : sqlite3 cursor to 'meta_materials.db'
     """
     def __init__(self, directory, cursor = None):
         self.directory = directory
         self.cursor = cursor
+        self.files = os.listdir(self.directory)
 
     def find_path(self, name):
         bashCommand = 'find {} -name *{}_Daten_gesamt.mat -print -quit'.format(self.directory, name)
@@ -50,18 +55,42 @@ class Crawler:
             adress = eval(adress,{"__builtins__":None})
         return self.find_smat(name, adress)
 
+    def load_smat_npy(self, name, adress=None):
+        if type(adress) is str:
+            adress = eval(adress,{"__builtins__":None})
+
+        smat = np.load("{}/{}{}.npy".format(self.directory, name, adress))
+        return smat
+
+
+    def load_smat_by_id_npy(self, id):
+        query = 'SELECT m_file, adress FROM simulations WHERE simulation_id = {}'.format(id)
+        self.cursor.execute(query)
+        row = self.cursor.fetchone()
+
+        smat = self.load_smat_npy(name=row[0], adress=row[1])
+        return smat
+
+    def load_random_smat_npy(self):
+        """
+        Loads a random smat from a directory of .npy files
+        self.directory has to point to a .npy directory
+
+        Returns
+        -------
+        smat : LX4X4 Array
+
+        """
+        file = random.choice(self.files)
+        smat = np.load("{}/{}".format(self.directory, file))
+        return smat
 
     def extract_all(self, target_dir):
-        """CAREFULL: This copies files to the target_dict.
+        """
+        CAREFULL: This copies files to the target_dict.
         For every destict m_file name in meta_materials.db this methode looks
         for 'm_file*Daten_gesamt.mat' in self.directory and copies it to target_dir.
-
-        Args:
-            target_dir (str)
         """
-
-
-
         self.cursor.execute('select m_file from simulations')
         names = [name[0] for name in self.cursor.fetchall()]
         names = set(names)
@@ -151,6 +180,37 @@ class Crawler:
             working += 1
         print('{} out of {} entries working'.format(working, all))
 
+    def convert_to_npy(self, ids):
+        """
+        Loads the .mat files for all the IDs, splits them into one file per ID
+        and saves them as .npy files for quicker access
+        Also extracts the parameters of every ID and saves them to a shelve file
+
+        Parameters
+        ----------
+        ids : list
+        """
+        with shelve.open("smat_params.shelve") as d:
+            for id in ids:
+                print("converting id: ", id)
+                #save smat
+                query = 'SELECT m_file, adress FROM simulations WHERE simulation_id = {}'.format(id)
+                self.cursor.execute(query)
+                row = self.cursor.fetchone()
+                name = row[0]
+                adress = row[1]
+                if type(adress) is str:
+                    adress = eval(adress,{"__builtins__":None})
+
+                fullname = "{}{}.npy".format(name, adress)
+                smat = self.find_smat(name, adress)
+                np.save("smat_data/{}".format(fullname), smat)
+                #save params
+                params = self.extract_params(id)
+                d[fullname] = params
+
+            d.close()
+
 
 def mat_print(mat):
     for i in range(4):
@@ -162,10 +222,14 @@ if __name__ == '__main__':
     #create a crawler object
     conn = sqlite3.connect('meta_materials.db')
     cursor = conn.cursor()
-    crawler = Crawler(directory='collected_mats', cursor=cursor)
+    crawler = Crawler(directory='../collected_mats', cursor=cursor)
 
+    cursor.execute("""SELECT simulation_id FROM simulations
+                   WHERE angle_of_incidence=0
+                   AND geometry = 'square'
+                   AND wavelength_start = 0.5
+                   AND wavelength_stop = 1
+                   AND spectral_points =  128""")
+    ids = [id[0] for id in cursor.fetchall()]
 
-    #crawler.extract_params(250)
-    
-    crawler.check_db_for_correct_dimensions()
-    #crawler.extract_all(target_dir='path_to_extracted_.mat_files')
+    crawler.convert_to_npy(ids)
