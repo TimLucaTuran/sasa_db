@@ -5,7 +5,7 @@ import re
 import numpy as np
 import os
 import random
-import shelve
+import pickle
 
 
 class Crawler:
@@ -190,26 +190,30 @@ class Crawler:
         ----------
         ids : list
         """
-        with shelve.open("smat_params.shelve") as d:
-            for id in ids:
-                print("converting id: ", id)
-                #save smat
-                query = 'SELECT m_file, adress FROM simulations WHERE simulation_id = {}'.format(id)
-                self.cursor.execute(query)
-                row = self.cursor.fetchone()
-                name = row[0]
-                adress = row[1]
-                if type(adress) is str:
-                    adress = eval(adress,{"__builtins__":None})
+        param_dict = {}
 
-                fullname = "{}{}.npy".format(name, adress)
-                smat = self.find_smat(name, adress)
-                np.save("smat_data/{}".format(fullname), smat)
-                #save params
-                params = self.extract_params(id)
-                d[fullname] = params
+        for id in ids:
+            print("converting id: ", id)
+            #save smat
+            query = 'SELECT m_file, adress FROM simulations WHERE simulation_id = {}'.format(id)
+            self.cursor.execute(query)
+            row = self.cursor.fetchone()
+            name = row[0]
+            adress = row[1]
+            if type(adress) is str:
+                adress = eval(adress,{"__builtins__":None})
 
-            d.close()
+            fullname = "{}{}.npy".format(name, adress)
+            smat = self.find_smat(name, adress)
+            np.save("smat_data/{}".format(fullname), smat)
+            #write params to dict
+            params = self.extract_params(id)
+            param_dict[fullname] = params
+
+        #pickle param_dict
+        with open("params.pickle", "wb") as f:
+            pickle.dump(param_dict, f)
+
 
 
 def mat_print(mat):
