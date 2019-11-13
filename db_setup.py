@@ -1,5 +1,5 @@
 import sqlite3
-conn = sqlite3.connect('meta_materials.db')
+conn = sqlite3.connect('NN_smats.db')
 c = conn.cursor()
 
 with conn:

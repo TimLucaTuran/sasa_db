@@ -8,7 +8,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-db", "--databank", help="path to sqlite3-db", required=True)
 ap.add_argument("-exl", "--excel-sheet", help="path to excel-file", required=True)
 ap.add_argument("-n", "--sheet-number", help="which excel-sheet to convert",
-    type=int, required=True)
+    type=int, default=1)
 ap.add_argument("-v", "--verbose", action="store_true", help="verbose output")
 args = vars(ap.parse_args())
 print(args)
@@ -114,7 +114,8 @@ class Exl:
         return
 
     def trim(self):
-        self.data = self.data.strip()
+        for d in self.data:
+            d = d.strip()   
 
     def sem_check(self):
         if not self.target_dict['image_source'] == 'SEM_FLAG':
@@ -442,11 +443,15 @@ for row in ws.iter_rows():
         name_row = row
         break
 
+
 #find the position of each excel collumn
 for cell in name_row:
+    if cell.value is None:
+        break
+
     for exl in exl_list:
         if exl.name == cell.value.strip():
-            exl.column = cell.column -1
+            exl.column = cell.column - 1
             break
 
 if args["verbose"]:
@@ -458,7 +463,7 @@ query_gen = QueryGenerator(sql_dict)
 for row in ws.iter_rows(name_row[0].row + 1, ws.max_row):
 #for row in ws.iter_rows(18, 23):
     #Break on empty row
-    if len(row[0].value) == 0:
+    if row[0].value is None:
         break
     #Load the data of the row
     for i in range(len(row)):
