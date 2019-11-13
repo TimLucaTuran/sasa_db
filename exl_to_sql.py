@@ -115,7 +115,7 @@ class Exl:
 
     def trim(self):
         for d in self.data:
-            d = d.strip()   
+            d = d.strip()
 
     def sem_check(self):
         if not self.target_dict['image_source'] == 'SEM_FLAG':
@@ -175,7 +175,6 @@ class QueryGenerator:
                            'circ' : self.circ,
                            'L' : self.L,
                            }
-        self.adress = []
         self.dummy_dict = {'Chi_RotWire_1_rounded_Ti_d' : 0,
                            'Chi_RotWire_1_rounded_Ti_h' : 0,
                            'Chi_RotWire_1_rounded_Ti_k' : 0,
@@ -218,14 +217,14 @@ class QueryGenerator:
         self.dummy_dimension_check(sql_dict)
 
         ###simulations query
-        #consruct the list which holds the sql data to be submitted
+        #construct the list which holds the sql data to be submitted
         sim_data = []
         key_count = 0
         for key, val in sql_dict.items():
             if key == 'length':  #length is the first key for the geo-query
                 break
             elif val is not None:
-                sim_data.append(val)
+                sim_data.append(str(val))
                 self.sim_query += key
                 self.sim_query += ', '
                 key_count += 1
@@ -261,7 +260,7 @@ class QueryGenerator:
         geo_data = []
         for key, val in active_dict:
             if sql_dict[key] is not None:
-                geo_data.append(val)
+                geo_data.append(str(val))
                 self.geo_query += key
                 self.geo_query += ', '
 
@@ -298,95 +297,46 @@ class QueryGenerator:
         it to work.
         """
         #find the colums which have list-values
-        list_vals = [(key, val) for key, val in sql_dict.items()
+        list_cols = [(key, val) for key, val in sql_dict.items()
                     if type(val) is list]
-        list_vals.sort(key = lambda tup : len(tup[1]))
+        list_cols.sort(key = lambda tup : len(tup[1]))
+
+        #if the sql_dict contains no lists just make the query
+        if len(list_cols) == 0:
+            self.make_query(sql_dict)
+            return
 
         #check if there are multiple values with the same dimension.
         #In this case the adress system won't work because it can't know which
         #dimension belongs to which property
-        len_list = [len(tup[1]) for tup in list_vals]
+        len_list = [len(tup[1]) for tup in list_cols]
         if len(len_list) != len(set(len_list)):
             self.failed_queries += 1
             print('multiple Values have the same dimension, skipping')
             return
 
+
+        #prepare the adress
+        sql_dict['adress'] = [0]*len(list_cols)
+        #make queries
+        self.generate_split(list_cols, sql_dict)
         #reset the adress
-        self.adress = []
+        sql_dict['adress'] = None
 
-
-        if len(list_vals) == 0:
+    def generate_split(self, list_cols, sql_dict, idx=0):
+        if len(list_cols) == idx:
+            #Here sql_dict contains no more lists
             self.make_query(sql_dict)
-            return
-
-        elif len(list_vals) == 1:
-            current_key = list_vals[0][0]
-            current_list = list_vals[0][1]
-            self.adress.append(None)
-
-            for i in range(len(current_list)):
-                sql_dict[current_key] = current_list[i]
-                self.adress[-1] = i
-                sql_dict['adress'] = str(self.adress)
-                self.make_query(sql_dict)
-
-
-            #reset the adress
-            sql_dict['adress'] = None
-            return
-
-        elif len(list_vals) == 2:
-            key_0 = list_vals[0][0]
-            list_0 = list_vals[0][1]
-            key_1 = list_vals[1][0]
-            list_1 = list_vals[1][1]
-            self.adress.append(None)
-            self.adress.append(None)
-
-            for i in range(len(list_0)):
-                sql_dict[key_0] = list_0[i]
-                self.adress[0] = i
-                for j in range(len(list_1)):
-                    sql_dict[key_1] = list_1[j]
-                    self.adress[1] = j
-                    sql_dict['adress'] = str(self.adress)
-                    self.make_query(sql_dict)
-
-            #reset the adress
-            sql_dict['adress'] = None
-            return
-
-        elif len(list_vals) == 3:
-            key_0 = list_vals[0][0]
-            list_0 = list_vals[0][1]
-            key_1 = list_vals[1][0]
-            list_1 = list_vals[1][1]
-            key_2  = list_vals[2][0]
-            list_2 = list_vals[2][1]
-            self.adress.append(None)
-            self.adress.append(None)
-            self.adress.append(None)
-
-            for i in range(len(list_0)):
-                sql_dict[key_0] = list_0[i]
-                self.adress[0] = i
-                for j in range(len(list_1)):
-                    sql_dict[key_1] = list_1[j]
-                    self.adress[1] = j
-                    for k in range(len(list_2)):
-                        sql_dict[key_2] = list_2[k]
-                        self.adress[2] = k
-                        sql_dict['adress'] = str(self.adress)
-                        self.make_query(sql_dict)
-
-            #reset the adress
-            sql_dict['adress'] = None
-            return
 
         else:
-            self.failed_queries += 1
-            print('list_val dim to high')
-            print('list_vals: ',list_vals)
+            #Here there are more list-values wich need to be split up
+            current_key, current_list = list_cols[idx]
+
+            for i in range(len(current_list)):
+                sql_dict['adress'][idx] = i
+                sql_dict[current_key] = current_list[i]
+                self.generate_split(list_cols, sql_dict, idx=idx+1)
+
 
 
 sql_dict={ 'geometry': None ,
