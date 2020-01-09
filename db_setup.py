@@ -31,29 +31,30 @@ with conn:
         length INT UNSIGNED,
         width INT UNSIGNED,
         thickness INT UNSIGNED,
+        hole TEXT DEFAULT 'no holes',
         rounded_corner BOOL DEFAULT FALSE,
         corner_radius FLOAT,
-        image_source VARCHAR(50) )"""
+        image_source VARCHAR(50))"""
         )
 
-    c.execute("""CREATE TABLE disc(
-        simulation_id INT UNSIGNED PRIMARY KEY,
-        radius INT UNSIGNED,
-        height INT UNSIGNED,
-        thickness INT UNSIGNED)"""
-        )
-
-    c.execute("""CREATE TABLE circ(
-        simulation_id INT UNSIGNED PRIMARY KEY,
-        width INT UNSIGNED,
-        thickness INT UNSIGNED,
-        hole BOOL DEFAULT FALSE)"""
-        )
-
-    c.execute("""CREATE TABLE L(
-        simulation_id INT UNSIGNED PRIMARY KEY,
-        length INT UNSIGNED,
-        width INT UNSIGNED,
-        thickness INT UNSIGNED,
-        girth INT UNSIGNED)"""
-        )
+#    c.execute("""CREATE TABLE disc(
+#        simulation_id INT UNSIGNED PRIMARY KEY,
+#        radius INT UNSIGNED,
+#        height INT UNSIGNED,
+#        thickness INT UNSIGNED)"""
+#        )
+#
+#    c.execute("""CREATE TABLE circ(
+#        simulation_id INT UNSIGNED PRIMARY KEY,
+#        width INT UNSIGNED,
+#        thickness INT UNSIGNED,
+#        hole BOOL DEFAULT FALSE)"""
+#        )
+#
+#    c.execute("""CREATE TABLE L(
+#        simulation_id INT UNSIGNED PRIMARY KEY,
+#        length INT UNSIGNED,
+#        width INT UNSIGNED,
+#        thickness INT UNSIGNED,
+#        girth INT UNSIGNED)"""
+#        )

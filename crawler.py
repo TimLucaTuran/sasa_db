@@ -56,9 +56,7 @@ class Crawler:
         return self.find_smat(name, adress)
 
     def load_smat_npy(self, name, adress=None):
-        if type(adress) is str:
-            adress = eval(adress,{"__builtins__":None})
-
+        
         smat = np.load("{}/{}{}.npy".format(self.directory, name, adress))
         return smat
 
@@ -183,8 +181,8 @@ class Crawler:
     def convert_to_npy(self, ids):
         """
         Loads the .mat files for all the IDs, splits them into one file per ID
-        and saves them as .npy files for quicker access
-        Also extracts the parameters of every ID and saves them to a shelve file
+        and saves them as .npy for quicker access
+        Also extracts the parameters of every ID and saves them to a .pickle file
 
         Parameters
         ----------
