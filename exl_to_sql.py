@@ -10,6 +10,7 @@ ap.add_argument("-exl", "--excel-sheet", help="path to excel-file", required=Tru
 ap.add_argument("-n", "--sheet-number", help="which excel-sheet to convert",
     type=int, default=1)
 ap.add_argument("-v", "--verbose", action="store_true", help="verbose output")
+ap.add_argument("-s", "--skip-existing", action="store_true", help="skipping rows already contained in the db")
 args = vars(ap.parse_args())
 print(args)
 
@@ -150,10 +151,10 @@ class Exl:
         if 'skip' in self.data:
             raise ValueError('skipping marked row')
 
-        single_list = [10, 14]
-        if sheet_number in single_list:
-            if not 'single' in self.data:
-                raise ValueError('skipping stack simulation')
+        #single_list = [10, 14]
+        #if sheet_number in single_list:
+        #    if not 'single' in self.data:
+        #        raise ValueError('skipping stack simulation')
         return
 
 
@@ -221,7 +222,9 @@ class QueryGenerator:
         sim_data = []
         key_count = 0
         for key, val in sql_dict.items():
-            if key == 'length':  #length is the first key for the geo-query
+            #width is the first key for the geo-query. This is pretty dirty
+            #because different parameters might cause a fault here
+            if key == 'width':
                 break
             elif val is not None:
                 sim_data.append(str(val))
@@ -306,6 +309,13 @@ class QueryGenerator:
             self.make_query(sql_dict)
             return
 
+        #check for list of the same length and bring them in the correct order
+        len_list = [len(tup[1]) for tup in list_cols]
+
+
+
+
+        """
         #check if there are multiple values with the same dimension.
         #In this case the adress system won't work because it can't know which
         #dimension belongs to which property
@@ -314,7 +324,7 @@ class QueryGenerator:
             self.failed_queries += 1
             print('multiple Values have the same dimension, skipping')
             return
-
+        """
 
         #prepare the adress
         sql_dict['adress'] = [0]*len(list_cols)
@@ -329,7 +339,7 @@ class QueryGenerator:
             self.make_query(sql_dict)
 
         else:
-            #Here there are more list-values wich need to be split up
+            #Here there are more list-type-values wich need to be split up
             current_key, current_list = list_cols[idx]
 
             for i in range(len(current_list)):
@@ -351,8 +361,8 @@ sql_dict={ 'geometry': None ,
            'simulation_order': None ,
            'adress': None ,
            'angle_of_incidence' : None,
-           'length': None ,
            'width': None ,
+           'length': None ,
            'thickness': None ,
            'corner_radius': None ,
            'radius': None ,
@@ -407,6 +417,8 @@ for cell in name_row:
 if args["verbose"]:
     for exl in exl_list:
         print(exl.name, exl.column)
+
+
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator(sql_dict)

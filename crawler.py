@@ -35,6 +35,7 @@ class Crawler:
     def find_smat(self, name, adress=None):
         path = self.find_path(name)
         smat = loadmat(path)['SMAT_']
+        smat = np.squeeze(smat)
         if adress is None:
             return smat
         else:
@@ -56,7 +57,7 @@ class Crawler:
         return self.find_smat(name, adress)
 
     def load_smat_npy(self, name, adress=None):
-        
+
         smat = np.load("{}/{}{}.npy".format(self.directory, name, adress))
         return smat
 
@@ -188,7 +189,9 @@ class Crawler:
         ----------
         ids : list
         """
-        param_dict = {}
+        #load param_dict
+        with open("params.pickle", "rb") as f:
+            param_dict = pickle.load(f)
 
         for id in ids:
             print("converting id: ", id)
@@ -222,16 +225,11 @@ def mat_print(mat):
 #%%
 if __name__ == '__main__':
     #create a crawler object
-    conn = sqlite3.connect('meta_materials.db')
+    conn = sqlite3.connect('NN_smats.db')
     cursor = conn.cursor()
-    crawler = Crawler(directory='../collected_mats', cursor=cursor)
+    crawler = Crawler(directory='collected_mats', cursor=cursor)
 
     cursor.execute("""SELECT simulation_id FROM simulations
-                   WHERE angle_of_incidence=0
-                   AND geometry = 'square'
-                   AND wavelength_start = 0.5
-                   AND wavelength_stop = 1
-                   AND spectral_points =  128""")
+                   WHERE geometry='wire'""")
     ids = [id[0] for id in cursor.fetchall()]
-
     crawler.convert_to_npy(ids)
