@@ -3,28 +3,7 @@ import os, sys
 import openpyxl
 import argparse
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-db", "--databank", help="path to sqlite3-db", required=True)
-ap.add_argument("-exl", "--excel-sheet", help="path to excel-file", required=True)
-ap.add_argument("-n", "--sheet-number", help="which excel-sheet to convert",
-    type=int, default=1)
-ap.add_argument("-v", "--verbose", action="store_true", help="verbose output")
-ap.add_argument("-s", "--skip-existing", action="store_true", help="skipping rows already contained in the db")
-args = vars(ap.parse_args())
-print(args)
 
-#Connect to the sqlite3 db and the exel sheet
-conn = sqlite3.connect(args["databank"])
-my_cursor = conn.cursor()
-wb = openpyxl.load_workbook(args["excel_sheet"])
-sheets = wb.sheetnames
-sheet_number = args["sheet_number"]
-ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 14, 16, 22
-
-
-
-#%%
 class Exl:
     """Defines the Excel-Struct it holds information of a single Excel-Cell and which
     opperations need to be applied. E.g. for the wavelength excel cell
@@ -33,6 +12,7 @@ class Exl:
 
 
     target_dict = None #This defines a shared class attribute
+    skip_list = None
 
     def __init__(self, name, target_key, opperation_list=[]):
         self.name = name
@@ -151,10 +131,10 @@ class Exl:
         if 'skip' in self.data:
             raise ValueError('skipping marked row')
 
-        #single_list = [10, 14]
-        #if sheet_number in single_list:
-        #    if not 'single' in self.data:
-        #        raise ValueError('skipping stack simulation')
+        #skip existing
+        if args["skip_existing"]:
+            if self.data in self.skip_list:
+                raise ValueError('skipping existing row', self.data)
         return
 
 
@@ -166,8 +146,8 @@ class QueryGenerator:
         self.valid_queries = 0
         self.failed_queries = 0
         self.skip_row = False
-        self.wire = ['simulation_id', 'length', 'width', 'thickness','corner_radius',
-                    'rounded_corner', 'image_source']
+        self.wire = ['simulation_id', 'length', 'width', 'thickness', 'hole',
+                    'corner_radius', 'rounded_corner', 'image_source']
         self.square = ['simulation_id', 'width', 'thickness', 'hole']
         self.circ = ['simulation_id', 'width', 'thickness', 'hole']
         self.L = []
@@ -347,7 +327,24 @@ class QueryGenerator:
                 sql_dict[current_key] = current_list[i]
                 self.generate_split(list_cols, sql_dict, idx=idx+1)
 
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-db", "--databank", help="path to sqlite3-db", default="NN_smats.db")
+ap.add_argument("-exl", "--excel-sheet", help="path to excel-file", default="NN_smats.xlsx")
+ap.add_argument("-n", "--sheet-number", help="which excel-sheet to convert",
+    type=int, default=1)
+ap.add_argument("-v", "--verbose", action="store_true", help="verbose output")
+ap.add_argument("-s", "--skip-existing", action="store_true", help="skipping rows already contained in the db")
+args = vars(ap.parse_args())
 
+
+#Connect to the sqlite3 db and the exel sheet
+conn = sqlite3.connect(args["databank"])
+my_cursor = conn.cursor()
+wb = openpyxl.load_workbook(args["excel_sheet"])
+sheets = wb.sheetnames
+sheet_number = args["sheet_number"]
+ws = wb[sheets[sheet_number - 1]] #usable sheets are: 10, 11, 14, 16, 22
 
 sql_dict={ 'geometry': None ,
            'm_file': None ,
@@ -418,7 +415,11 @@ if args["verbose"]:
     for exl in exl_list:
         print(exl.name, exl.column)
 
-
+if args["skip_existing"]:
+    #query the db for already existing entries
+    query = """SELECT DISTINCT m_file FROM simulations"""
+    my_cursor.execute(query)
+    Exl.skip_list = [x[0] for x in my_cursor.fetchall()]
 
 ####Main loop: Generate SQL-queries for every Excel row####
 query_gen = QueryGenerator(sql_dict)

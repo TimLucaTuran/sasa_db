@@ -215,19 +215,35 @@ class Crawler:
         with open("params.pickle", "wb") as f:
             pickle.dump(param_dict, f)
 
+    def set_condition_flag(self):
+        """
+        Checks if the DB entries meet the physical conditions
+        """
+        self.cursor.execute("""SELECT simulation_id from simulations""")
+        ids = [id[0] for id in cursor.fetchall()]
 
-
-def mat_print(mat):
-    for i in range(4):
-        print('{:+.2f} {:+.2f} {:+.2f} {:+.2f}'.format(mat[i, 0], mat[i,1], mat[i,2], mat[i,3]))
-
-
+        for id in ids:
+            print("woring on", id)
+            self.cursor.execute(f"""SELECT wavelength_start, periode FROM simulations
+                WHERE simulation_id = {id}""")
+            wav , period = self.cursor.fetchone()
+            #check the condition
+            if wav > 1.4 * period/1000:
+                flag = 1
+            else:
+                flag = 0
+            #set the flag
+            self.cursor.execute(f"""UPDATE simulations
+                                    SET meets_conditions = {flag}
+                                    WHERE simulation_id = {id}""")
 #%%
 if __name__ == '__main__':
     #create a crawler object
     conn = sqlite3.connect('NN_smats.db')
     cursor = conn.cursor()
     crawler = Crawler(directory='collected_mats', cursor=cursor)
+    crawler.set_condition_flag()
+    conn.commit()
 
     cursor.execute("""SELECT simulation_id FROM simulations
                    WHERE geometry='wire'""")
