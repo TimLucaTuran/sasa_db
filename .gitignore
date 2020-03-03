@@ -1,2 +1,6 @@
 __pycache__/
 collected_mats/
+data/smats/
+build/
+dist/
+*.egg-info/

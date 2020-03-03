@@ -18,14 +18,12 @@ setuptools.setup(
 
     license='MIT',
 
-    install_requires=[
-        'sqlite3',
-        'openpyxl',
-    ],
-
-    package_data={'': ['license.txt']},
-
     include_package_data=True,
+
+    install_requires=[
+        'openpyxl',
+        'scipy',
+    ],
 
     classifiers=[
 

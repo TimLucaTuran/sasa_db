@@ -1,1 +1,2 @@
 include data/*
+recursive-exclude data/smats *
