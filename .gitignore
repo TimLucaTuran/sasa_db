@@ -1,4 +1,2 @@
-*old*
-venv/*
-collected*
-/__pycache__/
+__pycache__/
+collected_mats/
