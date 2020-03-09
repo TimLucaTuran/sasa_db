@@ -13,11 +13,9 @@ class Crawler:
     nessecary name/ID in the 'meta_materials.db'. You need to be able to execute
     Bash commands. For example usage look below in the 'if name == main' section.
 
-    Parameters
-    ----------
-    directory : str
-                path to directory containing the .mat/.npy files
-    cursor : sqlite3 cursor to 'meta_materials.db'
+    # Arguments
+        directory: str, path to directory containing the .mat/.npy files
+        cursor: sqlite3 cursor
     """
     def __init__(self, directory, cursor = None):
         self.directory = directory
@@ -75,9 +73,8 @@ class Crawler:
         Loads a random smat from a directory of .npy files
         self.directory has to point to a .npy directory
 
-        Returns
-        -------
-        smat : LX4X4 Array
+        # Returns
+            smat: LX4X4 Array
 
         """
         file = random.choice(self.files)
@@ -104,15 +101,12 @@ class Crawler:
     def extract_params(self, id):
         """Queries meta_materials.db for all the data to the given ID.
 
-        Parameters
-        ----------
-        id : int
+        # Arguments
+            id: int
 
-        Returns
-        -------
-        param_dict : dict
-                     Contains the combined data from the simulations and
-                     geometry tables with coresponding names
+        # Returns
+            param_dict: dict, contains the combined data from the simulations and
+                geometry tables with coresponding names
         """
         #query for the simulation_data of id
         query = 'SELECT * FROM simulations WHERE simulation_id = {}'.format(id)
@@ -185,9 +179,8 @@ class Crawler:
         and saves them as .npy for quicker access
         Also extracts the parameters of every ID and saves them to a .pickle file
 
-        Parameters
-        ----------
-        ids : list
+        # Arguments
+            ids: list
         """
         #load param_dict
         with open("params.pickle", "rb") as f:
