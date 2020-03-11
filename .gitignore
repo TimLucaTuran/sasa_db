@@ -1,6 +1,8 @@
 __pycache__/
 collected_mats/
-data/smats/
-build/
 dist/
 *.egg-info/
+build/
+data/*
+!data/NN_smats.db
+!data/NN_smats.xlsx
