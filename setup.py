@@ -1,5 +1,8 @@
 import setuptools
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setuptools.setup(
 
     name='sasa_db',
@@ -12,13 +15,15 @@ setuptools.setup(
 
     description="Utility to convert Excel tables to a sqlite database and access the data",
 
-    url="https://github.com/TimLucaTuran/meta-material-database",
+    long_description=long_description,
+
+    long_description_content_type="text/markdown",
+
+    url="https://github.com/TimLucaTuran/sasa_db",
 
     packages=['sasa_db'],
 
     license='MIT',
-
-    include_package_data=True,
 
     install_requires=[
         'openpyxl',

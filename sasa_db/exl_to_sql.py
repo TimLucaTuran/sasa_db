@@ -329,8 +329,8 @@ class QueryGenerator:
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-db", "--databank", help="path to sqlite3-db", default="NN_smats.db")
-ap.add_argument("-exl", "--excel-sheet", help="path to excel-file", default="NN_smats.xlsx")
+ap.add_argument("excel-sheet", metavar="exl", help="path to excel-file", default="NN_smats.xlsx")
+ap.add_argument("databank", metavar="db", help="path to sqlite3-db", default="NN_smats.db")
 ap.add_argument("-n", "--sheet-number", help="which excel-sheet to convert",
     type=int, default=1)
 ap.add_argument("-v", "--verbose", action="store_true", help="verbose output")

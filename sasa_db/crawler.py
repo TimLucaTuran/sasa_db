@@ -9,7 +9,7 @@ import pickle
 
 
 class Crawler:
-    """This Modul allows to load S-matrices from a target directory. Find the
+    """This Class allows to load S-matrices from a target directory. Find the
     nessecary name/ID in the 'meta_materials.db'. You need to be able to execute
     Bash commands. For example usage look below in the 'if name == main' section.
 
@@ -99,7 +99,7 @@ class Crawler:
 
 
     def extract_params(self, id):
-        """Queries meta_materials.db for all the data to the given ID.
+        """Queries meta_materials.db for all the parameters to the given ID.
 
         # Arguments
             id: int
